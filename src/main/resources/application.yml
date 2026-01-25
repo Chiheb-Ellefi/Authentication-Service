@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: Authorization Service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    password: password
+    username: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    open-in-view: off
+server:
+  port: 9000
