@@ -8,18 +8,27 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -243,5 +252,117 @@ public class CustomUserManagerTest {
         verify(userRepository).findByUsername("invalidUsername");
     }
 
+    /*----------------changePassword Unit Tests-------------------*/
 
+    @Test
+    @DisplayName("Should change password when authentication exists and password matches")
+    public void changePassword_AuthenticationExistsAndPasswordMatches_ChangePassword() {
+        String username = "testuser";
+        String oldPassword = "oldPass123";
+        String newPassword = "newPass456";
+        String encodedOldPassword = "encodedOldPass";
+        String encodedNewPassword = "encodedNewPass";
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(encodedOldPassword);
+        try(MockedStatic<SecurityContextHolder> securityContextHolder = mockStatic(SecurityContextHolder.class)) {
+            SecurityContext securityContext = mock(SecurityContext.class);
+            Authentication authentication = mock(Authentication.class);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            when(authentication.getName()).thenReturn(username);
+            securityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+            when(passwordEncoder.matches(oldPassword, user.getPassword())).thenReturn(true);
+            when(passwordEncoder.encode(newPassword)).thenReturn(encodedNewPassword);
+           userManager.changePassword(oldPassword, newPassword);
+           verify(userRepository).save(user);
+           assertEquals(encodedNewPassword, user.getPassword());
+            assertTrue(user.getPasswordChangedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
+
+        }
+
+    }
+    @Test
+    @DisplayName("Should throw BadCredentialsException when password does not match ")
+    public void changePassword_PasswordDoesNotMatch_ThrowsBadCredentialsException() {
+        String username = "testuser";
+        User user = new User();
+        String oldPassword = "oldPass123";
+        String newPassword = "newPass456";
+        String encodedOldPassword = "encodedOldPass";
+        user.setUsername(username);
+        user.setPassword(encodedOldPassword);
+        try(MockedStatic<SecurityContextHolder> securityContextHolder = mockStatic(SecurityContextHolder.class)) {
+            SecurityContext securityContext = mock(SecurityContext.class);
+            Authentication authentication = mock(Authentication.class);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            when(authentication.getName()).thenReturn(username);
+            securityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(userRepository.findByUsername(username)).thenReturn(Optional.of(user));
+            when(passwordEncoder.matches(oldPassword, user.getPassword())).thenReturn(false);
+            Exception e=assertThrows(BadCredentialsException.class,()->userManager.changePassword(oldPassword, newPassword));
+            assertTrue(e.getMessage().contains("Old password is incorrect"));
+            verify(userRepository).findByUsername(username);
+            verifyNoMoreInteractions(userRepository);
+            verify(passwordEncoder).matches(oldPassword, user.getPassword());
+            verifyNoMoreInteractions(passwordEncoder);
+        }
+    }
+    @Test
+    @DisplayName("Should throw IllegalStateException when the authentication is null")
+    public void changePassword_AuthenticationIsNull_ThrowsIllegalStateException() {
+        try(MockedStatic<SecurityContextHolder> securityContextHolder = mockStatic(SecurityContextHolder.class)) {
+            SecurityContext securityContext = mock(SecurityContext.class);
+            when(securityContext.getAuthentication()).thenReturn(null);
+            securityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+
+            Exception e=assertThrows(IllegalStateException.class,()->userManager.changePassword("oldPassword", "newPassword"));
+
+            assertTrue(e.getMessage().contains("No authenticated user found"));
+           verifyNoInteractions(userRepository,passwordEncoder);
+
+        }
+    }
+
+    @Test
+    @DisplayName("Should throw UsernameNotFoundException when username not found ")
+    public void changePassword_UserNotFoundByUsername_ThrowsUsernameNotFoundException() {
+        String username = "testuser";
+        try(MockedStatic<SecurityContextHolder> securityContextHolder = mockStatic(SecurityContextHolder.class)) {
+            SecurityContext securityContext = mock(SecurityContext.class);
+            Authentication authentication = mock(Authentication.class);
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            when(authentication.getName()).thenReturn(username);
+            securityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+            when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+
+            assertThrows(UsernameNotFoundException.class,()->userManager.changePassword("oldPassword", "newPassword"));
+            verify(userRepository).findByUsername(username);
+            verifyNoMoreInteractions(userRepository);
+            verifyNoInteractions(passwordEncoder);
+        }
+    }
+    @ParameterizedTest
+    @MethodSource("provideInvalidPasswordCombinations")
+    @DisplayName("Should throw IllegalArgumentException when passwords invalid")
+    public void changePassword_PasswordsInvalid_ThrowsIllegalArgumentException(String oldPassword,String newPassword) {
+        assertThrows(IllegalArgumentException.class,()->userManager.changePassword(oldPassword, newPassword));
+        verifyNoInteractions(userRepository, passwordEncoder);
+    }
+    private static Stream<Arguments> provideInvalidPasswordCombinations() {
+        return Stream.of(
+                Arguments.of(null, "validPass"),
+                Arguments.of("validPass", null),
+                Arguments.of(null, null),
+                Arguments.of("", "validPass"),
+                Arguments.of("validPass", ""),
+                Arguments.of("", ""),
+                Arguments.of(" ", "validPass"),
+                Arguments.of("validPass", " "),
+                Arguments.of(" ", " ")
+        );
+
+
+}
 }
