@@ -43,7 +43,7 @@ public class CustomUserManager implements UserDetailsManager {
         userRepository.findById(user.getId()).ifPresent(u->{
             u.setUsername(user.getUsername()!=null?user.getUsername():u.getUsername());
             if (user.getRoles() != null && !user.getRoles().isEmpty()) {
-                u.getRoles().addAll(user.getRoles());
+                u.setRoles(user.getRoles());
             }
             userRepository.save(u);
         });
@@ -156,6 +156,7 @@ public class CustomUserManager implements UserDetailsManager {
         user.setFailedLoginAttempts(0);
         userRepository.save(user);
     }
+    // addRole(), removeRole()
 
 
     private User extractUser(UserDetails userDetails) {
