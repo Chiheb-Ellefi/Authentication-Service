@@ -13,3 +13,8 @@ spring:
     open-in-view: off
 server:
   port: 9000
+
+jwt:
+  secret: krOTDgSoVxe2xRP6QrGzVCuldrCRhnuB
+  expiration: 3600000
+

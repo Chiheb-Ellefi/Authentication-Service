@@ -2,6 +2,7 @@ package delivery.system.authorizationservice.models;
 
 import delivery.system.authorizationservice.entities.User;
 
+import lombok.Builder;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
@@ -14,6 +15,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 @Getter
+@Builder
 public class CustomUserDetails implements UserDetails {
     private final  User user;
     public CustomUserDetails(User user) {
