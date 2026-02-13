@@ -36,9 +36,20 @@ public class JwtUtils {
     }
 
     public String generateToken(CustomUserDetails user) {
-        if (!user.isEnabled() || !user.isAccountNonLocked() ||
-                !user.isCredentialsNonExpired() || !user.isAccountNonExpired()) {
-            return null;
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+        if (!user.isEnabled()) {
+            throw new IllegalStateException("Cannot generate token for disabled user");
+        }
+        if (!user.isAccountNonLocked()) {
+            throw new IllegalStateException("Cannot generate token for locked account");
+        }
+        if (!user.isCredentialsNonExpired()) {
+            throw new IllegalStateException("Cannot generate token for user with expired credentials");
+        }
+        if (!user.isAccountNonExpired()) {
+            throw new IllegalStateException("Cannot generate token for expired account");
         }
         List<String> authorities = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
