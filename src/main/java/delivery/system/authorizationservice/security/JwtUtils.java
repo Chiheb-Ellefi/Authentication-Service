@@ -1,5 +1,6 @@
 package delivery.system.authorizationservice.security;
 
+import delivery.system.authorizationservice.entities.Authority;
 import delivery.system.authorizationservice.entities.Role;
 import delivery.system.authorizationservice.entities.User;
 import delivery.system.authorizationservice.models.CustomUserDetails;
@@ -69,8 +70,16 @@ public class JwtUtils {
                 .compact();
     }
 
-
-    public UserDetails extractUserDetails(String token) {
+    public CustomUserDetails extractUserDetails(String token) {
+        if(token == null) {
+            throw new IllegalArgumentException("Token cannot be null");
+        }
+        if(token.isBlank()) {
+            throw new IllegalArgumentException("Token cannot be blank");
+        }
+        if(token.split("\\.").length!=3){
+            throw new IllegalArgumentException("Token must contain 3 parts");
+        }
         Claims claims = Jwts.parser()
                 .verifyWith(secretKey)
                 .build()
@@ -80,15 +89,18 @@ public class JwtUtils {
         @SuppressWarnings("unchecked")
         List<String> authoritiesStr = claims.get("authorities", List.class);
 
-        Collection<GrantedAuthority> authorities = authoritiesStr.stream()
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-
+        Set<Authority> authorities = authoritiesStr.stream()
+                .filter(auth -> !auth.startsWith("ROLE_"))
+                .map(authName -> Authority.builder()
+                        .name(authName)
+                        .build())
+                .collect(Collectors.toSet());
         Set<Role> roles = authoritiesStr.stream()
                 .filter(auth -> auth.startsWith("ROLE_"))
                 .map(auth -> auth.substring(5))
-                .map(roleName -> Role.builder().name(roleName).build())
+                .map(roleName -> Role.builder().name(roleName).authorities(authorities).build())
                 .collect(Collectors.toSet());
+
 
         User user = User.builder()
                 .id(Long.parseLong(claims.getSubject()))
@@ -100,8 +112,7 @@ public class JwtUtils {
                 .credentialsNonExpired(true)
                 .failedLoginAttempts(0)
                 .build();
-
-        return new CustomUserDetails(user);
+            return new CustomUserDetails(user);
     }
 
     public boolean validateJwtToken(String token) {

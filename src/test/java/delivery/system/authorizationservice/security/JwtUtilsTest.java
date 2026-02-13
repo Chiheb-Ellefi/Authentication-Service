@@ -12,6 +12,8 @@ import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 
@@ -19,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -123,7 +126,29 @@ public class JwtUtilsTest {
         assertTrue(exception.getMessage().contains("expired account"));
     }
 
+    @Test
+    @DisplayName("Should return UserDetails when token is valid")
+    public void extractUserDetails_TokenValid_ReturnUserDetails() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String token = jwtUtils.generateToken(userDetails);
 
+        CustomUserDetails extractedUserDetails = jwtUtils.extractUserDetails(token);
+
+        assertNotNull(extractedUserDetails);
+        assertEquals(userDetails.getUser().getId(), extractedUserDetails.getUser().getId(), "User ID should match");
+        assertEquals(userDetails.getUsername(), extractedUserDetails.getUsername(), "Username should match");
+
+        Set<String> originalAuthorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+
+        Set<String> extractedAuthorities = extractedUserDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+        assertTrue(extractedAuthorities.containsAll(originalAuthorities), "Authorities should contain authorities");
+
+    }
 
 
 
