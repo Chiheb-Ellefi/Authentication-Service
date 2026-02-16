@@ -7,13 +7,18 @@ import delivery.system.authorizationservice.models.CustomUserDetails;
 
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 
@@ -149,6 +154,71 @@ public class JwtUtilsTest {
         assertTrue(extractedAuthorities.containsAll(originalAuthorities), "Authorities should contain authorities");
 
     }
+
+    @ParameterizedTest
+    @DisplayName("Should throw IllegalArgumentException when token is null")
+    @NullSource
+    public void extractUserDetails_NullToken_ThrowsIllegalArgumentException(String token) {
+        assertThrows(IllegalArgumentException.class,()->jwtUtils.extractUserDetails(token));
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {""," "})
+    @DisplayName("Should throw IllegalArgumentException when token is blank")
+    public void extractUserDetails_BlankToken_ThrowsIllegalArgumentException(String token) {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtUtils.extractUserDetails(token));
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"xxxx.yyyyy", "xxxx.yyyy.zzzz.tttt"})
+    @DisplayName("Should throw IllegalArgumentException when token has invalid format")
+    public void extractUserDetails_InvalidFormat_ThrowsIllegalArgumentException(String token) {
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtUtils.extractUserDetails(token),
+                "Token must contain 3 parts");
+    }
+
+    @Test
+    @DisplayName("Should throw MalformedJwtException when token is malformed")
+    public void extractUserDetails_MalformedToken_ThrowsMalformedJwtException() {
+        String malformedToken = "header.payload.signature";
+
+        assertThrows(MalformedJwtException.class,
+                () -> jwtUtils.extractUserDetails(malformedToken));
+    }
+    @Test
+    @DisplayName("Should throw SignatureException when token signature is invalid")
+    public void extractUserDetails_InvalidSignature_ThrowsSignatureException() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String validToken = jwtUtils.generateToken(userDetails);
+
+        String[] parts = validToken.split("\\.");
+        String tamperedToken = parts[0] + "." + parts[1] + ".tampered_signature";
+
+        assertThrows(SignatureException.class,
+                () -> jwtUtils.extractUserDetails(tamperedToken));
+    }
+    @Test
+    @DisplayName("Should throw ExpiredJwtException when token is expired")
+    public void extractUserDetails_ExpiredToken_ThrowsExpiredJwtException() throws InterruptedException {
+
+        JwtUtils shortExpirationJwt = new JwtUtils();
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtSecret", TEST_SECRET);
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtExpiration", 1); // 1ms
+        ReflectionTestUtils.setField(shortExpirationJwt, "issuerService", TEST_ISSUER);
+        shortExpirationJwt.init();
+
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String token = shortExpirationJwt.generateToken(userDetails);
+
+        Thread.sleep(10);
+
+        assertThrows(ExpiredJwtException.class,
+                () -> shortExpirationJwt.extractUserDetails(token));
+    }
+
+
 
 
 
