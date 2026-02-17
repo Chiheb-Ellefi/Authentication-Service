@@ -23,6 +23,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -217,7 +218,90 @@ public class JwtUtilsTest {
         assertThrows(ExpiredJwtException.class,
                 () -> shortExpirationJwt.extractUserDetails(token));
     }
+    /*-----------------validateJwtTokenTest-------------------*/
+    @Test
+    @DisplayName("Should return true when token is valid")
+    public void validateJwtToken_ValidToken_ReturnsTrue() {
+            User user = createTestUser();
+            CustomUserDetails userDetails = new CustomUserDetails(user);
+            String token = jwtUtils.generateToken(userDetails);
+            boolean valid = jwtUtils.validateJwtToken(token);
+            assertTrue(valid);
 
+    }
+
+    @Test
+    @DisplayName("Should return false when the signature is tampered with ")
+    public void validateJwtToken_InvalidTokenSignature_ReturnsFalse() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String validToken = jwtUtils.generateToken(userDetails);
+
+        String[] parts = validToken.split("\\.");
+        String tamperedToken = parts[0] + "." + parts[1] + ".tampered_signature";
+
+        assertFalse(jwtUtils.validateJwtToken(tamperedToken));
+    }
+
+    @Test
+    @DisplayName("Should throw MalformedJwtException when token is malformed")
+    public void validateToken_MalformedToken_ThrowsMalformedJwtException() {
+        String malformedToken = "header.payload.signature";
+        assertFalse(jwtUtils.validateJwtToken(malformedToken));
+    }
+    @Test
+    @DisplayName("Should throw ExpiredJwtException when token is expired")
+    public void validateToken_ExpiredToken_ThrowsExpiredJwtException() throws InterruptedException {
+
+        JwtUtils shortExpirationJwt = new JwtUtils();
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtSecret", TEST_SECRET);
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtExpiration", 1); // 1ms
+        ReflectionTestUtils.setField(shortExpirationJwt, "issuerService", TEST_ISSUER);
+        shortExpirationJwt.init();
+
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String token = shortExpirationJwt.generateToken(userDetails);
+
+        Thread.sleep(10);
+
+        assertFalse(jwtUtils.validateJwtToken(token));
+    }
+    @Test
+    @DisplayName("Should return false when token is null")
+    public void validateJwtToken_NullToken_ReturnsFalse() {
+        assertFalse(jwtUtils.validateJwtToken(null));
+    }
+
+    @Test
+    @DisplayName("Should return false when token is empty string")
+    public void validateJwtToken_EmptyToken_ReturnsFalse() {
+        assertFalse(jwtUtils.validateJwtToken(""));
+    }
+
+    @Test
+    @DisplayName("Should return false when token is blank string")
+    public void validateJwtToken_BlankToken_ReturnsFalse() {
+        assertFalse(jwtUtils.validateJwtToken("   "));
+    }
+
+    @Test
+    @DisplayName("Should return false when token header is invalid Base64")
+    public void validateJwtToken_InvalidBase64Header_ReturnsFalse() {
+        String invalidBase64Token = "invalid@base64!.payload.signature";
+        assertFalse(jwtUtils.validateJwtToken(invalidBase64Token));
+    }
+    @Test
+    @DisplayName("Should return false when token payload is invalid JSON")
+    public void validateJwtToken_InvalidJsonPayload_ReturnsFalse() {
+        String header = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{\"alg\":\"HS256\"}".getBytes());
+        String payload = Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("{invalid-json}".getBytes());
+        String invalidToken = header + "." + payload + ".signature";
+
+        assertFalse(jwtUtils.validateJwtToken(invalidToken));
+    }
 
 
 

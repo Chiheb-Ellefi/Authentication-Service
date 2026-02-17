@@ -123,7 +123,7 @@ public class JwtUtils {
                     .parseSignedClaims(token);
             log.debug("JWT token validated successfully");
             return true;
-        } catch (SecurityException e) {
+        } catch (io.jsonwebtoken.security.SignatureException e) {
             log.error("Invalid JWT signature - possible token tampering: {}", e.getMessage());
         } catch (MalformedJwtException e) {
             log.error("Malformed JWT token - invalid structure: {}", e.getMessage());
