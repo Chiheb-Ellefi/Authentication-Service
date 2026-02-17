@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
@@ -23,10 +24,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,89 +47,226 @@ public class JwtUtilsTest {
         jwtUtils.init();
 
     }
+    /*-----------------generateTokenTest-------------------*/
+    /*-----------------generateTokenTests-------------------*/
 
     @Test
     @DisplayName("Should return token when user details are valid")
     public void generateToken_ValidUserDetails_ReturnToken() {
-        User user=createTestUser();
-        CustomUserDetails userDetails=new CustomUserDetails(user);
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        String token =jwtUtils.generateToken(userDetails);
+        String token = jwtUtils.generateToken(userDetails);
 
-        assertNotNull(token,"Token should not be null");
-        assertEquals(3, token.split("\\.").length, "Token should have 3 parts separated by dots");
+        assertNotNull(token, "Token should not be null");
+        assertEquals(3, token.split("\\.").length,
+                "Token should have 3 parts separated by dots");
 
-        SecretKey secretKey= Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
-        Claims claims= Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload();
-        assertEquals(TEST_ISSUER,claims.getIssuer(), "Issuer should match");
-        assertEquals(user.getId().toString(),claims.getSubject(),"Subject should be user ID");
-        assertEquals(user.getUsername(), claims.get("username", String.class), "Username should match");
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        assertEquals(TEST_ISSUER, claims.getIssuer(), "Issuer should match");
+        assertEquals(user.getId().toString(), claims.getSubject(),
+                "Subject should be user ID");
+        assertEquals(user.getUsername(), claims.get("username", String.class),
+                "Username should match");
 
         @SuppressWarnings("unchecked")
-        List<String> roles=claims.get("roles", List.class);
+        List<String> roles = claims.get("roles", List.class);
         assertTrue(roles.contains("USER"), "Roles should contain USER");
-        @SuppressWarnings("unchecked")
-        List<String> authorities=claims.get("authorities", List.class);
-        assertTrue(authorities.contains("ROLE_USER"), "Authorities should contain ROLE_USER");
-        assertTrue(authorities.contains("read"), "Authorities should contain read");
-        assertTrue(authorities.contains("write"), "Authorities should contain write");
 
+        @SuppressWarnings("unchecked")
+        List<String> authorities = claims.get("authorities", List.class);
+        assertTrue(authorities.contains("ROLE_USER"),
+                "Authorities should contain ROLE_USER");
+        assertTrue(authorities.contains("read"),
+                "Authorities should contain read");
+        assertTrue(authorities.contains("write"),
+                "Authorities should contain write");
+    }
+
+    @Test
+    @DisplayName("Should set correct expiration time on token")
+    public void generateToken_ValidUser_HasCorrectExpiration() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        long beforeGeneration = System.currentTimeMillis();
+
+        String token = jwtUtils.generateToken(userDetails);
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        long expectedExpiration = beforeGeneration + TEST_EXPIRATION;
+
+        assertTrue(
+                Math.abs(claims.getExpiration().getTime() - expectedExpiration) < 1000,
+                "Expiration should be approximately jwtExpiration ms from now"
+        );
     }
 
     @Test
     @DisplayName("Should throw IllegalArgumentException when user is null")
-    public void generateToken_NullUser_ThrowsException() {
+    public void generateToken_NullUser_ThrowsIllegalArgumentException() {
         assertThrows(IllegalArgumentException.class,
                 () -> jwtUtils.generateToken(null),
                 "Should throw IllegalArgumentException for null user");
     }
 
     @Test
+    @DisplayName("Should throw IllegalStateException when user ID is null")
+    public void generateToken_NullUserId_ThrowsIllegalStateException() {
+        User user = createTestUser();
+        user.setId(null);
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> jwtUtils.generateToken(userDetails));
+        assertEquals("Cannot generate token for user without an ID",
+                exception.getMessage());
+    }
+
+    @Test
     @DisplayName("Should throw IllegalStateException when user is disabled")
-    public void generateToken_DisabledUser_ThrowsException() {
+    public void generateToken_DisabledUser_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setEnabled(false);
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
-        assertTrue(exception.getMessage().contains("disabled"));
+        assertEquals("Cannot generate token for disabled user",
+                exception.getMessage());
     }
 
     @Test
     @DisplayName("Should throw IllegalStateException when account is locked")
-    public void generateToken_LockedAccount_ThrowsException() {
+    public void generateToken_LockedAccount_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setAccountNonLocked(false);
         CustomUserDetails userDetails = new CustomUserDetails(user);
+
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
-        assertTrue(exception.getMessage().contains("locked"));
+        assertEquals("Cannot generate token for locked account",
+                exception.getMessage());
     }
 
     @Test
     @DisplayName("Should throw IllegalStateException when credentials are expired")
-    public void generateToken_ExpiredCredentials_ThrowsException() {
+    public void generateToken_ExpiredCredentials_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setCredentialsNonExpired(false);
         CustomUserDetails userDetails = new CustomUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
-        assertTrue(exception.getMessage().contains("expired credentials"));
+        assertEquals("Cannot generate token for user with expired credentials",
+                exception.getMessage());
     }
 
     @Test
     @DisplayName("Should throw IllegalStateException when account is expired")
-    public void generateToken_ExpiredAccount_ThrowsException() {
+    public void generateToken_ExpiredAccount_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setAccountNonExpired(false);
         CustomUserDetails userDetails = new CustomUserDetails(user);
+
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
-        assertTrue(exception.getMessage().contains("expired account"));
+        assertEquals("Cannot generate token for expired account",
+                exception.getMessage());
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" "})
+    @DisplayName("Should throw IllegalArgumentException when username is null or blank")
+    public void generateToken_NullOrBlankUsername_ThrowsIllegalArgumentException(
+            String username) {
+        User user = createTestUser();
+        user.setUsername(username);
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> jwtUtils.generateToken(userDetails));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalStateException when roles are null")
+    public void generateToken_NullRoles_ThrowsIllegalStateException() {
+        User user = createTestUser();
+        user.setRoles(null);
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> jwtUtils.generateToken(userDetails));
+        assertEquals("User roles cannot be null", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should generate token successfully when user has no roles")
+    public void generateToken_EmptyRoles_GeneratesTokenSuccessfully() {
+        User user = createTestUser();
+        user.setRoles(new HashSet<>());
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        String token = jwtUtils.generateToken(userDetails);
+
+        assertNotNull(token);
+        assertFalse(token.isBlank());
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        @SuppressWarnings("unchecked")
+        List<String> rolesInToken = claims.get("roles", List.class);
+        assertNotNull(rolesInToken);
+        assertTrue(rolesInToken.isEmpty());
+    }
+
+    @Test
+    @DisplayName("Should include all roles in token claims")
+    public void generateToken_WithRoles_AllRolesIncludedInClaims() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+
+        String token = jwtUtils.generateToken(userDetails);
+
+        SecretKey secretKey = Keys.hmacShaKeyFor(
+                TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+
+        @SuppressWarnings("unchecked")
+        List<String> rolesInToken = claims.get("roles", List.class);
+        List<String> expectedRoles = user.getRoles().stream()
+                .map(Role::getName)
+                .toList();
+
+        assertNotNull(rolesInToken);
+        assertEquals(expectedRoles.size(), rolesInToken.size());
+        assertTrue(rolesInToken.containsAll(expectedRoles));
+    }
+    /*-----------------extractUserDetailsTest-------------------*/
     @Test
     @DisplayName("Should return UserDetails when token is valid")
     public void extractUserDetails_TokenValid_ReturnUserDetails() {
@@ -265,7 +400,7 @@ public class JwtUtilsTest {
 
         Thread.sleep(10);
 
-        assertFalse(jwtUtils.validateJwtToken(token));
+        assertFalse(shortExpirationJwt.validateJwtToken(token));
     }
     @Test
     @DisplayName("Should return false when token is null")
@@ -302,6 +437,76 @@ public class JwtUtilsTest {
 
         assertFalse(jwtUtils.validateJwtToken(invalidToken));
     }
+    /*-----------------extractUsernameTest-------------------*/
+
+    @Test
+    @DisplayName("Should return username when token is valid")
+    public void extractUsername_ValidToken_ReturnsUserName() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String token = jwtUtils.generateToken(userDetails);
+        String username = jwtUtils.extractUsername(token);
+        assertEquals(username, user.getUsername());
+    }
+    @Test
+    @DisplayName("Should throw IllegalArgumentException when the token is null")
+    public void extractUsername_NullToken_ThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.extractUsername(null),"Token cannot be null");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {""," "})
+    @DisplayName("Should throw IllegalArgumentException when the token is blank")
+    public void extractUsername_BlankToken_ThrowsIllegalArgumentException(String token) {
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.extractUsername(token),"Token cannot be blank");
+    }
+    @ParameterizedTest
+    @ValueSource(strings={"xxxx.yyyy.","xxxx.yyyy.zzzz.tttt"})
+    @DisplayName("Should throw IllegalArgumentException when the token is invalid")
+    public void extractUsername_InvalidToken_ThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.extractUsername("invalid"),"Token must contain 3 parts");
+    }
+
+    @Test
+    @DisplayName("Should throw UsernameNotFoundException when username claim is missing")
+    public void extractUsername_MissingUsernameClaim_ThrowsUsernameNotFoundException() {
+        SecretKey secretKey = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        String tokenWithoutUsername = Jwts.builder()
+                .subject("123")
+                .claim("authorities", List.of())
+                .claim("roles", List.of())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 60000))
+                .issuer("test-issuer")
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+
+        assertThrows(IllegalStateException.class,
+                () -> jwtUtils.extractUsername(tokenWithoutUsername));
+    }
+
+    @Test
+    @DisplayName("Should throw UsernameNotFoundException when username claim is blank")
+    public void extractUsername_BlankUsernameClaim_ThrowsUsernameNotFoundException() {
+        SecretKey secretKey = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        String tokenWithBlankUsername = Jwts.builder()
+                .subject("123")
+                .claim("username", "   ")
+                .claim("authorities", List.of())
+                .claim("roles", List.of())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + 60000))
+                .issuer("test-issuer")
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+
+        assertThrows(IllegalStateException.class,
+                () -> jwtUtils.extractUsername(tokenWithBlankUsername));
+    }
+
+    /*-----------------extractUsernameTest-------------------*/
+
+
 
 
 
