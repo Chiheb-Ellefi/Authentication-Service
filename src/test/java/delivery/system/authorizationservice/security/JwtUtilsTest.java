@@ -504,11 +504,179 @@ public class JwtUtilsTest {
                 () -> jwtUtils.extractUsername(tokenWithBlankUsername));
     }
 
-    /*-----------------extractUsernameTest-------------------*/
+    /*-----------------extractUseIdTest-------------------*/
+    @Test
+    @DisplayName("Should userId when token is valid")
+    public void extractUserId_ValidToken_ReturnsUserId() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String token = jwtUtils.generateToken(userDetails);
+        Long userId = jwtUtils.extractUserId(token);
+        assertEquals(userId, user.getId(),"User id must match");
+    }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    public void extractUserId_InvalidToken_ThrowsIllegalArgumentException(String token) {
+        assertThrows(IllegalArgumentException.class, () -> jwtUtils.extractUserId(token),"Token must contain 3 parts");
 
+    }
 
+    @ParameterizedTest
+    @ValueSource(strings = {" ", "  "})
+    @DisplayName("Should throw IllegalArgumentException when token is blank")
+    public void extractUserId_BlankToken_ThrowsIllegalArgumentException(String token) {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> jwtUtils.extractUserId(token));
+        assertEquals("Token cannot be blank", ex.getMessage());
+    }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"xxxx.yyyy", "xxxx.yyyy.zzzz.tttt", "onlyonepart"})
+    @DisplayName("Should throw IllegalArgumentException when token does not have 3 parts")
+    public void extractUserId_WrongNumberOfParts_ThrowsIllegalArgumentException(String token) {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> jwtUtils.extractUserId(token));
+        assertEquals("Token must contain 3 parts", ex.getMessage());
+    }
+
+    @Test
+    @DisplayName("Should throw SignatureException when token signature is tampered")
+    public void extractUserId_TamperedSignature_ThrowsSignatureException() {
+        User user = createTestUser();
+        CustomUserDetails userDetails = new CustomUserDetails(user);
+        String validToken = jwtUtils.generateToken(userDetails);
+
+        String[] parts = validToken.split("\\.");
+        String tamperedToken = parts[0] + "." + parts[1] + ".tampered_signature";
+
+        assertThrows(SignatureException.class,
+                () -> jwtUtils.extractUserId(tamperedToken));
+    }
+
+    @Test
+    @DisplayName("Should throw SignatureException when token is signed with wrong secret")
+    public void extractUserId_WrongSecret_ThrowsSignatureException() {
+        SecretKey wrongKey = Keys.hmacShaKeyFor(
+                "completelydifferentsecretkey123456789012345".getBytes(StandardCharsets.UTF_8));
+        String tokenWithWrongSecret = Jwts.builder()
+                .subject("1")
+                .claim("username", "test-user")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + TEST_EXPIRATION))
+                .signWith(wrongKey, Jwts.SIG.HS256)
+                .compact();
+
+        assertThrows(SignatureException.class,
+                () -> jwtUtils.extractUserId(tokenWithWrongSecret));
+    }
+
+    @Test
+    @DisplayName("Should throw ExpiredJwtException when token is expired")
+    public void extractUserId_ExpiredToken_ThrowsExpiredJwtException() throws InterruptedException {
+        JwtUtils shortExpirationJwt = new JwtUtils();
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtSecret", TEST_SECRET);
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtExpiration", 1);
+        ReflectionTestUtils.setField(shortExpirationJwt, "issuerService", TEST_ISSUER);
+        shortExpirationJwt.init();
+
+        User user = createTestUser();
+        String token = shortExpirationJwt.generateToken(new CustomUserDetails(user));
+        Thread.sleep(10);
+
+        assertThrows(ExpiredJwtException.class,
+                () -> shortExpirationJwt.extractUserId(token));
+    }
+
+    @Test
+    @DisplayName("Should throw IllegalStateException when subject claim is missing")
+    public void extractUserId_MissingSubject_ThrowsIllegalStateException() {
+        SecretKey secretKey = Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        String tokenWithoutSubject = Jwts.builder()
+                .claim("username", "test-user")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + TEST_EXPIRATION))
+                .signWith(secretKey, Jwts.SIG.HS256)
+                .compact();
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> jwtUtils.extractUserId(tokenWithoutSubject));
+        assertEquals("Subject is missing or  blank in JWT token", ex.getMessage());
+    }
+
+    /*-----------------isTokenExpiredTests-------------------*/
+
+    @Test
+    @DisplayName("Should return false when token is valid and not expired")
+    public void isTokenExpired_ValidToken_ReturnsFalse() {
+        User user = createTestUser();
+        String token = jwtUtils.generateToken(new CustomUserDetails(user));
+
+        assertFalse(jwtUtils.isTokenExpired(token));
+    }
+
+    @Test
+    @DisplayName("Should return true when token is expired")
+    public void isTokenExpired_ExpiredToken_ReturnsTrue() throws InterruptedException {
+        JwtUtils shortExpirationJwt = new JwtUtils();
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtSecret", TEST_SECRET);
+        ReflectionTestUtils.setField(shortExpirationJwt, "jwtExpiration", 1);
+        ReflectionTestUtils.setField(shortExpirationJwt, "issuerService", TEST_ISSUER);
+        shortExpirationJwt.init();
+
+        User user = createTestUser();
+        String token = shortExpirationJwt.generateToken(new CustomUserDetails(user));
+        Thread.sleep(10);
+
+        assertTrue(shortExpirationJwt.isTokenExpired(token));
+    }
+
+    @Test
+    @DisplayName("Should return true when token is null")
+    public void isTokenExpired_NullToken_ReturnsTrue() {
+        assertTrue(jwtUtils.isTokenExpired(null));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", " "})
+    @DisplayName("Should return true when token is blank or empty")
+    public void isTokenExpired_BlankToken_ReturnsTrue(String token) {
+        assertTrue(jwtUtils.isTokenExpired(token));
+    }
+
+    @Test
+    @DisplayName("Should return true when token signature is tampered")
+    public void isTokenExpired_TamperedSignature_ReturnsTrue() {
+        User user = createTestUser();
+        String validToken = jwtUtils.generateToken(new CustomUserDetails(user));
+
+        String[] parts = validToken.split("\\.");
+        String tampered = parts[0] + "." + parts[1] + ".tampered_signature";
+
+        assertTrue(jwtUtils.isTokenExpired(tampered));
+    }
+
+    @Test
+    @DisplayName("Should return true when token is signed with wrong secret")
+    public void isTokenExpired_WrongSecret_ReturnsTrue() {
+        SecretKey wrongKey = Keys.hmacShaKeyFor(
+                "completelydifferentsecretkey123456789012345".getBytes(StandardCharsets.UTF_8));
+        String tokenWithWrongSecret = Jwts.builder()
+                .subject("1")
+                .claim("username", "test-user")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + TEST_EXPIRATION))
+                .signWith(wrongKey, Jwts.SIG.HS256)
+                .compact();
+
+        assertTrue(jwtUtils.isTokenExpired(tokenWithWrongSecret));
+    }
+
+    @Test
+    @DisplayName("Should return true when token is completely malformed")
+    public void isTokenExpired_MalformedToken_ReturnsTrue() {
+        assertTrue(jwtUtils.isTokenExpired("header.payload.signature"));
+    }
 
 
     private User createTestUser() {
