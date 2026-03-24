@@ -1,11 +1,12 @@
 package delivery.system.authorizationservice.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name = "roles")
 @Getter
@@ -19,7 +20,7 @@ public class Role {
     private Long id;
     @Column(nullable = false, unique = true)
     private String name;
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "role_authorities",
             joinColumns = @JoinColumn(name = "role_id"),

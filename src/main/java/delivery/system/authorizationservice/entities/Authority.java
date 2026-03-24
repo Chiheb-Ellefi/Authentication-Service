@@ -1,8 +1,9 @@
 package delivery.system.authorizationservice.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Entity
 @Table(name="authorities")
 @Getter

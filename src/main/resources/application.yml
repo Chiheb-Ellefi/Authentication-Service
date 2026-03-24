@@ -14,7 +14,10 @@ spring:
 server:
   port: 9000
 
-jwt:
+token:
   secret: krOTDgSoVxe2xRP6QrGzVCuldrCRhnuB
-  expiration: 3600000
+  access-token-ttl: 60
+  refresh-token-ttl: 120
+  authorization-code-ttl: 3600
+
 

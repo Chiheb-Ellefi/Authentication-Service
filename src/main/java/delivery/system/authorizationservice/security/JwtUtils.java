@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 @Component
 @Slf4j
 public class JwtUtils {
-    @Value("${jwt.secret}")
+    @Value("${token.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration}")
+    @Value("${token.access-token-ttl}")
     private int jwtExpiration;
     @Value("${spring.application.name}")
     private String issuerService;
