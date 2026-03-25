@@ -53,6 +53,35 @@ public class User {
     private LocalDateTime lastLogin;
     private LocalDateTime passwordChangedAt;
     private LocalDateTime lockedAt;
-    private Integer failedLoginAttempts;
+    @Builder.Default
+    private Integer failedLoginAttempts=0;
+
+    public void lock() {
+        this.accountNonLocked = false;
+        this.lockedAt = LocalDateTime.now();
+    }
+    public void unlock() {
+        this.setAccountNonLocked(true);
+        this.setLockedAt(null);
+        this.setFailedLoginAttempts(0);
+    }
+    public void enable(){
+        this.enabled=true;
+    }
+    public void disable(){
+        this.enabled=false;
+    }
+    public void expire(){
+        this.accountNonExpired=false;
+    }
+    public void unexpire(){
+        this.accountNonExpired=true;
+    }
+    public void loginFailed(){
+        this.failedLoginAttempts++;
+    }
+    public void loginSucceed(){
+        this.lastLogin=LocalDateTime.now();
+    }
 
 }

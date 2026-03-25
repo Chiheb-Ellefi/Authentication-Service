@@ -1,7 +1,7 @@
 package delivery.system.authorizationservice.security;
 
 
-import delivery.system.authorizationservice.services.CustomUserManager;
+import delivery.system.authorizationservice.services.CustomUserDetailsService;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -22,7 +22,7 @@ import java.io.IOException;
 @Slf4j
 public class AuthTokenFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
-    private final CustomUserManager userManager;
+    private final CustomUserDetailsService userManager;
 
 
     @Override

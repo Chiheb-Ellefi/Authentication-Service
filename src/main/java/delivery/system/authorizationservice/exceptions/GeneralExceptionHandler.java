@@ -5,7 +5,9 @@ import delivery.system.authorizationservice.exceptions.authority.AuthorityNotFou
 import delivery.system.authorizationservice.exceptions.request.BadRequestException;
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
+import delivery.system.authorizationservice.exceptions.user.PasswordDoNotMatchException;
 import delivery.system.authorizationservice.exceptions.user.UserAlreadyExistsException;
+import delivery.system.authorizationservice.exceptions.user.UserNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -75,5 +77,22 @@ public class GeneralExceptionHandler {
                 .build();
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorDetails> handleUserNotFoundException(UserNotFoundException e) {
+        ErrorDetails errorDetails=ErrorDetails.builder()
+                .message("User not found")
+                .details(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+    }
+    @ExceptionHandler(PasswordDoNotMatchException.class)
+    public ResponseEntity<ErrorDetails> handlePasswordDoNotMatchException(PasswordDoNotMatchException e) {
+        ErrorDetails errorDetails=ErrorDetails.builder()
+                .message("Password do not match")
+                .details(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+    }
+
 
 }

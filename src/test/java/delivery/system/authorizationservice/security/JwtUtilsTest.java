@@ -20,6 +20,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 import javax.crypto.SecretKey;
 
@@ -54,7 +55,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return token when user details are valid")
     public void generateToken_ValidUserDetails_ReturnToken() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         String token = jwtUtils.generateToken(userDetails);
 
@@ -94,7 +95,7 @@ public class JwtUtilsTest {
     @DisplayName("Should set correct expiration time on token")
     public void generateToken_ValidUser_HasCorrectExpiration() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         long beforeGeneration = System.currentTimeMillis();
 
         String token = jwtUtils.generateToken(userDetails);
@@ -128,7 +129,7 @@ public class JwtUtilsTest {
     public void generateToken_NullUserId_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setId(null);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
@@ -141,7 +142,7 @@ public class JwtUtilsTest {
     public void generateToken_DisabledUser_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setEnabled(false);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
@@ -154,7 +155,7 @@ public class JwtUtilsTest {
     public void generateToken_LockedAccount_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setAccountNonLocked(false);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
@@ -167,7 +168,7 @@ public class JwtUtilsTest {
     public void generateToken_ExpiredCredentials_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setCredentialsNonExpired(false);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
@@ -180,7 +181,7 @@ public class JwtUtilsTest {
     public void generateToken_ExpiredAccount_ThrowsIllegalStateException() {
         User user = createTestUser();
         user.setAccountNonExpired(false);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> jwtUtils.generateToken(userDetails));
@@ -196,22 +197,10 @@ public class JwtUtilsTest {
             String username) {
         User user = createTestUser();
         user.setUsername(username);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         assertThrows(IllegalArgumentException.class,
                 () -> jwtUtils.generateToken(userDetails));
-    }
-
-    @Test
-    @DisplayName("Should throw IllegalStateException when roles are null")
-    public void generateToken_NullRoles_ThrowsIllegalStateException() {
-        User user = createTestUser();
-        user.setRoles(null);
-        CustomUserDetails userDetails = new CustomUserDetails(user);
-
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> jwtUtils.generateToken(userDetails));
-        assertEquals("User roles cannot be null", exception.getMessage());
     }
 
     @Test
@@ -219,7 +208,7 @@ public class JwtUtilsTest {
     public void generateToken_EmptyRoles_GeneratesTokenSuccessfully() {
         User user = createTestUser();
         user.setRoles(new HashSet<>());
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         String token = jwtUtils.generateToken(userDetails);
 
@@ -244,7 +233,7 @@ public class JwtUtilsTest {
     @DisplayName("Should include all roles in token claims")
     public void generateToken_WithRoles_AllRolesIncludedInClaims() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
 
         String token = jwtUtils.generateToken(userDetails);
 
@@ -271,13 +260,13 @@ public class JwtUtilsTest {
     @DisplayName("Should return UserDetails when token is valid")
     public void extractUserDetails_TokenValid_ReturnUserDetails() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String token = jwtUtils.generateToken(userDetails);
 
         CustomUserDetails extractedUserDetails = jwtUtils.extractUserDetails(token);
 
         assertNotNull(extractedUserDetails);
-        assertEquals(userDetails.getUser().getId(), extractedUserDetails.getUser().getId(), "User ID should match");
+        assertEquals(userDetails.getId(), extractedUserDetails.getId(), "User ID should match");
         assertEquals(userDetails.getUsername(), extractedUserDetails.getUsername(), "Username should match");
 
         Set<String> originalAuthorities = userDetails.getAuthorities().stream()
@@ -325,7 +314,7 @@ public class JwtUtilsTest {
     @DisplayName("Should throw SignatureException when token signature is invalid")
     public void extractUserDetails_InvalidSignature_ThrowsSignatureException() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String validToken = jwtUtils.generateToken(userDetails);
 
         String[] parts = validToken.split("\\.");
@@ -345,7 +334,7 @@ public class JwtUtilsTest {
         shortExpirationJwt.init();
 
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String token = shortExpirationJwt.generateToken(userDetails);
 
         Thread.sleep(10);
@@ -358,7 +347,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return true when token is valid")
     public void validateJwtToken_ValidToken_ReturnsTrue() {
             User user = createTestUser();
-            CustomUserDetails userDetails = new CustomUserDetails(user);
+            CustomUserDetails userDetails = toUserDetails(user);
             String token = jwtUtils.generateToken(userDetails);
             boolean valid = jwtUtils.validateJwtToken(token);
             assertTrue(valid);
@@ -369,7 +358,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return false when the signature is tampered with ")
     public void validateJwtToken_InvalidTokenSignature_ReturnsFalse() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String validToken = jwtUtils.generateToken(userDetails);
 
         String[] parts = validToken.split("\\.");
@@ -395,7 +384,7 @@ public class JwtUtilsTest {
         shortExpirationJwt.init();
 
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String token = shortExpirationJwt.generateToken(userDetails);
 
         Thread.sleep(10);
@@ -443,7 +432,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return username when token is valid")
     public void extractUsername_ValidToken_ReturnsUserName() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String token = jwtUtils.generateToken(userDetails);
         String username = jwtUtils.extractUsername(token);
         assertEquals(username, user.getUsername());
@@ -509,7 +498,7 @@ public class JwtUtilsTest {
     @DisplayName("Should userId when token is valid")
     public void extractUserId_ValidToken_ReturnsUserId() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String token = jwtUtils.generateToken(userDetails);
         Long userId = jwtUtils.extractUserId(token);
         assertEquals(userId, user.getId(),"User id must match");
@@ -544,7 +533,7 @@ public class JwtUtilsTest {
     @DisplayName("Should throw SignatureException when token signature is tampered")
     public void extractUserId_TamperedSignature_ThrowsSignatureException() {
         User user = createTestUser();
-        CustomUserDetails userDetails = new CustomUserDetails(user);
+        CustomUserDetails userDetails = toUserDetails(user);
         String validToken = jwtUtils.generateToken(userDetails);
 
         String[] parts = validToken.split("\\.");
@@ -581,7 +570,7 @@ public class JwtUtilsTest {
         shortExpirationJwt.init();
 
         User user = createTestUser();
-        String token = shortExpirationJwt.generateToken(new CustomUserDetails(user));
+        String token = shortExpirationJwt.generateToken(toUserDetails(user));
         Thread.sleep(10);
 
         assertThrows(ExpiredJwtException.class,
@@ -610,7 +599,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return false when token is valid and not expired")
     public void isTokenExpired_ValidToken_ReturnsFalse() {
         User user = createTestUser();
-        String token = jwtUtils.generateToken(new CustomUserDetails(user));
+        String token = jwtUtils.generateToken(toUserDetails(user));
 
         assertFalse(jwtUtils.isTokenExpired(token));
     }
@@ -625,7 +614,7 @@ public class JwtUtilsTest {
         shortExpirationJwt.init();
 
         User user = createTestUser();
-        String token = shortExpirationJwt.generateToken(new CustomUserDetails(user));
+        String token = shortExpirationJwt.generateToken(toUserDetails(user));
         Thread.sleep(10);
 
         assertTrue(shortExpirationJwt.isTokenExpired(token));
@@ -648,7 +637,7 @@ public class JwtUtilsTest {
     @DisplayName("Should return true when token signature is tampered")
     public void isTokenExpired_TamperedSignature_ReturnsTrue() {
         User user = createTestUser();
-        String validToken = jwtUtils.generateToken(new CustomUserDetails(user));
+        String validToken = jwtUtils.generateToken(toUserDetails(user));
 
         String[] parts = validToken.split("\\.");
         String tampered = parts[0] + "." + parts[1] + ".tampered_signature";
@@ -739,6 +728,28 @@ public class JwtUtilsTest {
         return Authority.builder()
                 .id(id)
                 .name(name)
+                .build();
+    }
+    private CustomUserDetails toUserDetails(User user) {
+        Set<GrantedAuthority> authorities = user.getRoles().stream()
+                .flatMap(role -> {
+                    Set<GrantedAuthority> auths = role.getAuthorities().stream()
+                            .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a.getName()))
+                            .collect(Collectors.toSet());
+                    auths.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+                    return auths.stream();
+                })
+                .collect(Collectors.toSet());
+
+        return CustomUserDetails.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .password(user.getPassword())
+                .authorities(authorities)
+                .enabled(user.isEnabled())
+                .accountNonExpired(user.isAccountNonExpired())
+                .accountNonLocked(user.isAccountNonLocked())
+                .credentialsNonExpired(user.isCredentialsNonExpired())
                 .build();
     }
 }
