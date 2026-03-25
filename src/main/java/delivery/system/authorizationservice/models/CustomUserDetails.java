@@ -1,8 +1,7 @@
 package delivery.system.authorizationservice.models;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import delivery.system.authorizationservice.entities.Role;
 import delivery.system.authorizationservice.entities.User;
 
 import lombok.Builder;
@@ -15,63 +14,53 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
-import java.util.stream.Collectors;
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-@JsonAutoDetect(
-        fieldVisibility = JsonAutoDetect.Visibility.ANY,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        isGetterVisibility = JsonAutoDetect.Visibility.NONE
-)
+import java.util.Set;
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Getter
 @Builder
+@Getter
 public class CustomUserDetails implements UserDetails {
-    private final  User user;
-    public CustomUserDetails(User user) {
-        this.user = user;
-    }
+
+    private final Long id;
+    private final String username;
+    private final String password;
+    private final boolean enabled;
+    private final boolean accountNonExpired;
+    private final boolean accountNonLocked;
+    private final boolean credentialsNonExpired;
+    private final Set<GrantedAuthority> authorities;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return user.getRoles().stream()
-                .flatMap(role -> {
-                    var authorities = role.getAuthorities().stream()
-                            .map(auth -> new SimpleGrantedAuthority(auth.getName()))
-                            .collect(Collectors.toSet());
-
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" +role.getName()));
-
-                    return authorities.stream();
-                })
-                .collect(Collectors.toSet());
+        return authorities != null ? authorities : Set.of();
     }
 
     @Override
     public @Nullable String getPassword() {
-        return user.getPassword();
+        return password;
     }
 
     @Override
     public String getUsername() {
-        return user.getUsername();
+        return username;
     }
 
     @Override
     public boolean isAccountNonExpired() {
-        return user.isAccountNonExpired();
+        return accountNonExpired;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return user.isAccountNonLocked();
+        return accountNonLocked;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return user.isCredentialsNonExpired();
+        return credentialsNonExpired;
     }
 
     @Override
     public boolean isEnabled() {
-        return user.isEnabled();
+        return enabled;
     }
 }

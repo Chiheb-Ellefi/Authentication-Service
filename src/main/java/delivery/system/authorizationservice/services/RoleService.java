@@ -2,7 +2,7 @@ package delivery.system.authorizationservice.services;
 
 import delivery.system.authorizationservice.entities.Authority;
 import delivery.system.authorizationservice.entities.Role;
-import delivery.system.authorizationservice.exceptions.authority.AuthorityNotFoundException;
+
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
 import delivery.system.authorizationservice.models.request.AddRoleRequest;

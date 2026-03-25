@@ -1,41 +1,24 @@
 package delivery.system.authorizationservice.controllers;
 
-import delivery.system.authorizationservice.entities.Authority;
-import delivery.system.authorizationservice.entities.Role;
-import delivery.system.authorizationservice.entities.User;
-import delivery.system.authorizationservice.models.CustomUserDetails;
-import delivery.system.authorizationservice.repositories.UserRepository;
-import delivery.system.authorizationservice.services.CustomUserManager;
+import delivery.system.authorizationservice.models.request.AddUserRequest;
+import delivery.system.authorizationservice.services.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import java.util.HashSet;
-import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/users")
 public class UserController {
-    private final UserRepository userRepository;
-    private final CustomUserManager authenticationManager;
+    private final UserService userService;
 
-
-    @GetMapping
-    public ResponseEntity<User> index() {
-        Set<Role> roles = new HashSet<>();
-        roles.add(Role.builder().name("ADMIN").build());
-        User userDetails = User.builder()
-                .username("admin")
-                .password("admin")
-                .build();
-
-        authenticationManager.createUser(new CustomUserDetails(userDetails));
-        return ResponseEntity.ok(userDetails);
+    @PostMapping
+    public ResponseEntity<String> createUser(@RequestBody @Valid AddUserRequest request) {
+        userService.createUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body("User created");
     }
-   @GetMapping("/hello")
-    public ResponseEntity<String> hello() {
-        return ResponseEntity.ok("hello");
-   }
 
 }

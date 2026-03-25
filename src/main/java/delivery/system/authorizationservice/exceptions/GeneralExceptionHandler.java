@@ -5,6 +5,7 @@ import delivery.system.authorizationservice.exceptions.authority.AuthorityNotFou
 import delivery.system.authorizationservice.exceptions.request.BadRequestException;
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
+import delivery.system.authorizationservice.exceptions.user.UserAlreadyExistsException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -65,6 +66,14 @@ public class GeneralExceptionHandler {
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
+    }
+    @ExceptionHandler(UserAlreadyExistsException.class)
+    public ResponseEntity<ErrorDetails> handleUserAlreadyExists(UserAlreadyExistsException e) {
+        ErrorDetails errorDetails=ErrorDetails.builder()
+                .message("Conflict")
+                .details(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
     }
 
 }
