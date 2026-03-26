@@ -2,6 +2,8 @@ package delivery.system.authorizationservice.exceptions;
 
 import delivery.system.authorizationservice.exceptions.authority.AuthorityAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.authority.AuthorityNotFoundException;
+import delivery.system.authorizationservice.exceptions.client.ClientAlreadyExistsException;
+import delivery.system.authorizationservice.exceptions.client.ClientNotFoundException;
 import delivery.system.authorizationservice.exceptions.request.BadRequestException;
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
@@ -93,6 +95,22 @@ public class GeneralExceptionHandler {
                 .build();
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
     }
+@ExceptionHandler(ClientAlreadyExistsException.class)
+    public ResponseEntity<ErrorDetails> handleClientAlreadyExists(ClientAlreadyExistsException e) {
+        ErrorDetails errorDetails =ErrorDetails.builder()
+                .message("Client already exists")
+                .details(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
+}
+@ExceptionHandler(ClientNotFoundException.class)
+    public ResponseEntity<ErrorDetails> handleClientNotFoundException(ClientNotFoundException e) {
+        ErrorDetails errorDetails=  ErrorDetails.builder()
+                .message("Client not found")
+                .details(e.getMessage())
+                .build();
 
+        return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
+}
 
 }

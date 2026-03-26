@@ -16,8 +16,16 @@ server:
 
 token:
   secret: krOTDgSoVxe2xRP6QrGzVCuldrCRhnuB
-  access-token-ttl: 60
-  refresh-token-ttl: 120
-  authorization-code-ttl: 3600
+  access-token-ttl: 300
+  refresh-token-ttl: 2592000
+  authorization-code-ttl: 300
+
+
+auth:
+  allowed-scopes: openid, profile, email, phone, address, read, write
+  allowed-grant-types: authorization_code, refresh_token, client_credentials
+client:
+  require-proof-key: false
+  require-authorization-consent: false
 
 
