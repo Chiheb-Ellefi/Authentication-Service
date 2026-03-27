@@ -10,12 +10,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/roles")
 public class RoleController {
     private final RoleService roleService;
+
+    @GetMapping
+    public ResponseEntity<List<RoleResponse>> getAllRoles() {
+        return ResponseEntity.ok(roleService.findAll());
+    }
 
     @PostMapping
     public ResponseEntity<RoleResponse> addRole(@RequestBody @Valid AddRoleRequest request) {

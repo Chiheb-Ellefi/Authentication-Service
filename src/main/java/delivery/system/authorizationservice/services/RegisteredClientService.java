@@ -82,7 +82,7 @@ public class RegisteredClientService {
                             .authorizationCodeTimeToLive(Duration.ofSeconds(authorizationCodeTtl))
                             .refreshTokenTimeToLive(Duration.ofSeconds(refreshTokenTtl))
                             .reuseRefreshTokens(false)
-                            .idTokenSignatureAlgorithm(SignatureAlgorithm.ES256)
+                            .idTokenSignatureAlgorithm(SignatureAlgorithm.RS256)
                             .build())
                     .build();
 

@@ -38,7 +38,7 @@
                         Set<GrantedAuthority> auths = role.getAuthorities().stream()
                                 .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a.getName()))
                                 .collect(Collectors.toSet());
-                        auths.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+                        auths.add(new SimpleGrantedAuthority(role.getName()));
                         return auths.stream();
                     })
                     .collect(Collectors.toSet());

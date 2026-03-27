@@ -20,7 +20,8 @@ public class AuthorityService {
     public Authority findAuthorityByName(String authorityName) {
         if (authorityName == null || authorityName.isBlank())
             throw new IllegalArgumentException("authorityName is null or empty");
-        return authorityRepository.findByName(authorityName).orElseThrow(() -> new AuthorityNotFoundException("Authority not found: " + authorityName));
+        String normalized = authorityName.trim().toLowerCase();
+        return authorityRepository.findByName(normalized).orElseThrow(() -> new AuthorityNotFoundException("Authority not found: " + authorityName));
     }
 
     @Transactional
@@ -36,8 +37,9 @@ public class AuthorityService {
     public void deleteAuthorityByName(String authorityName) {
         if (authorityName == null || authorityName.isBlank())
             throw new IllegalArgumentException("authorityName is null or empty");
-        if (authorityRepository.findByName(authorityName).isEmpty())
+        String  normalizedName = authorityName.trim().toLowerCase();
+        if (authorityRepository.findByName(normalizedName).isEmpty())
             throw new AuthorityNotFoundException("Authority not found: " + authorityName);
-        authorityRepository.deleteByName(authorityName);
+        authorityRepository.deleteByName(normalizedName);
     }
 }
