@@ -188,19 +188,18 @@ public class SecurityConfig {
                         .map(GrantedAuthority::getAuthority)
                         .collect(Collectors.toSet());
 
-                // Roles already carry the ROLE_ prefix from Spring — keep as-is
                 Set<String> roles = allAuthorities.stream()
                         .filter(a -> a.startsWith("ROLE_"))
                         .collect(Collectors.toSet());
 
                 context.getClaims()
-                        .claim("authorities", allAuthorities)  // "ROLE_ADMIN", "user:read" …
-                        .claim("roles", roles)                 // "ROLE_ADMIN"
+                        .claim("authorities", allAuthorities)
+                        .claim("roles", roles)
                         .claim("username", principal.getName());
             }
         };
     }
-    // SecurityConfig.java — add this bean
+
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter converter = new JwtGrantedAuthoritiesConverter();

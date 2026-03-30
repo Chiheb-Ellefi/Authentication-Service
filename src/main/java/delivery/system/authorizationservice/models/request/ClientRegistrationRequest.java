@@ -7,12 +7,16 @@ import delivery.system.authorizationservice.annotations.ValidScopes;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 
+import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 
 import java.util.Set;
 
 @Getter
+@Builder
+@Setter
 public class ClientRegistrationRequest {
 
     @NotBlank(message = "Client name is required")
@@ -34,9 +38,9 @@ public class ClientRegistrationRequest {
     @JsonProperty("authorizationGrantTypes")
     private Set<String> authorizationGrantTypes;
 
-    @NotBlank(message = "Post logout redirect URI is required")
-    @org.hibernate.validator.constraints.URL(message = "Post logout redirect URI must be a valid URL")
+    @NotEmpty(message = "At least one redirect URI is required")
+    @ValidRedirectUris
     @JsonProperty("postLogoutRedirectUri")
-    private String postLogoutRedirectUri;
+    private Set<String> postLogoutRedirectUris;
 
 }

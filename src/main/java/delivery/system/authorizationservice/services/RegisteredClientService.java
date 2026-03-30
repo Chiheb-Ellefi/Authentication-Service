@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -39,8 +40,15 @@ public class RegisteredClientService {
     @Value("${token.access-token-ttl}")
     private Long accessTokenTtl;
 
+    @Value("${token.format}")
+    private String tokenFormat;
+
     @Value("${token.refresh-token-ttl}")
     private Long refreshTokenTtl;
+    @Value("${token.reuse-refresh-tokens}")
+    private boolean reuseRefreshTokens;
+    @Value("${token.id-token-signature-algorithm}")
+    private String idTokenSignatureAlgorithm;
 
     @Value("${token.authorization-code-ttl}")
     private Long authorizationCodeTtl;
@@ -48,8 +56,11 @@ public class RegisteredClientService {
     @Value("${client.require-proof-key}")
     private boolean requireProofKey;
 
+
     @Value("${client.require-authorization-consent}")
     private boolean requireAuthorizationConsent;
+    @Value("${auth.client-authentication-methods}")
+    private List<String> clientAuthenticationMethods;
 
     public ClientRegistrationResponse registerClient(ClientRegistrationRequest request) {
         if (registeredClientAdminRepository.existsByClientName(request.getClientName())) {
@@ -64,13 +75,16 @@ public class RegisteredClientService {
                     .clientId(clientId)
                     .clientName(request.getClientName())
                     .clientSecret(passwordEncoder.encode(rawSecret))
-                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .clientAuthenticationMethods(methods ->
+                            clientAuthenticationMethods.stream()
+                                    .map(ClientAuthenticationMethod::new)
+                                    .forEach(methods::add))
                     .authorizationGrantTypes(grantTypes ->
                             request.getAuthorizationGrantTypes().stream()
                                     .map(AuthorizationGrantType::new)
                                     .forEach(grantTypes::add))
                     .redirectUris(uris -> uris.addAll(request.getRedirectUris()))
-                    .postLogoutRedirectUri(request.getPostLogoutRedirectUri())
+                    .postLogoutRedirectUris(uris -> uris.addAll(request.getPostLogoutRedirectUris()))
                     .scopes(scopes -> scopes.addAll(request.getScopes()))
                     .clientSettings(ClientSettings.builder()
                             .requireProofKey(requireProofKey)
@@ -78,11 +92,11 @@ public class RegisteredClientService {
                             .build())
                     .tokenSettings(TokenSettings.builder()
                             .accessTokenTimeToLive(Duration.ofSeconds(accessTokenTtl))
-                            .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
+                            .accessTokenFormat(new OAuth2TokenFormat(tokenFormat))
                             .authorizationCodeTimeToLive(Duration.ofSeconds(authorizationCodeTtl))
                             .refreshTokenTimeToLive(Duration.ofSeconds(refreshTokenTtl))
-                            .reuseRefreshTokens(false)
-                            .idTokenSignatureAlgorithm(SignatureAlgorithm.RS256)
+                            .reuseRefreshTokens(reuseRefreshTokens)
+                            .idTokenSignatureAlgorithm(SignatureAlgorithm.valueOf(idTokenSignatureAlgorithm))
                             .build())
                     .build();
 
@@ -118,6 +132,7 @@ public class RegisteredClientService {
         registeredClientAdminRepository.deleteByClientId(clientId);
         return ClientOperationResponse.builder().message("Client with id: "+ clientId+" deleted successfully!").clientId(clientId).build();
     }
+
 
 
 }
