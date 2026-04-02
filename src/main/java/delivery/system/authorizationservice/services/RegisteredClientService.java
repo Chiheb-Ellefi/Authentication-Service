@@ -6,7 +6,7 @@ import delivery.system.authorizationservice.models.request.ClientRegistrationReq
 import delivery.system.authorizationservice.models.response.ClientDetailsResponse;
 import delivery.system.authorizationservice.models.response.ClientOperationResponse;
 import delivery.system.authorizationservice.models.response.ClientRegistrationResponse;
-import delivery.system.authorizationservice.repositories.RegisteredClientAdminRepository;
+import delivery.system.authorizationservice.repositories.impl.RegisteredClientAdminRepositoryImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,7 +35,7 @@ public class RegisteredClientService {
 
     private final RegisteredClientRepository registeredClientRepository;
     private final PasswordEncoder passwordEncoder;
-    private final RegisteredClientAdminRepository registeredClientAdminRepository;
+    private final RegisteredClientAdminRepositoryImpl registeredClientAdminRepository;
 
     @Value("${token.access-token-ttl}")
     private Long accessTokenTtl;

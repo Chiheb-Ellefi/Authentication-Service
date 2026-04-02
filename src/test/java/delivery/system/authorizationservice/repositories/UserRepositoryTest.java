@@ -10,6 +10,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+
+
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +21,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Import(TestConfig.class)
+@Import({TestConfig.class,DummyData.class})
 public class UserRepositoryTest {
 
     @Autowired
@@ -37,7 +39,7 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("Should find user by username")
     public void findByUsernameWhenUsernameFoundThenReturnUser() {
-        User user = dummyData.getFirstUser();
+        User user = dummyData.getUser();
         User savedUser = userRepository.save(user);
 
         Optional<User> result = userRepository.findByUsername(savedUser.getUsername());
@@ -61,7 +63,7 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("Should return true if user exists ")
     public void existsByUsernameWhenUserExistThenReturnTrue() {
-        User user = dummyData.getFirstUser();
+        User user = dummyData.getUser();
         userRepository.save(user);
         assertTrue(userRepository.existsByUsername(user.getUsername()));
     }
@@ -77,7 +79,7 @@ public class UserRepositoryTest {
     @Test
     @DisplayName("Should delete user when username is valid")
     public void deleteByUsernameWhenUsernameFoundThenThenReturnOne() {
-        User user = dummyData.getFirstUser();
+        User user = dummyData.getUser();
         userRepository.save(user);
         Long nb = userRepository.deleteByUsername(user.getUsername());
         assertEquals(1L, (long) nb);

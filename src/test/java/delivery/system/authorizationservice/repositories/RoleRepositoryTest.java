@@ -18,7 +18,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Import(TestConfig.class)
+@Import({DummyData.class, TestConfig.class})
 public class RoleRepositoryTest {
     @Autowired
     private RoleRepository roleRepository;

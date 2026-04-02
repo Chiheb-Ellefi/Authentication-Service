@@ -72,23 +72,23 @@ public class RoleServiceTest {
     @DisplayName("Should return role when role name exists")
     public void findByName_RoleExists_ReturnsRole() {
         Role role = buildRole(1L, "ADMIN", Set.of());
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(role));
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.of(role));
 
         Role actual = roleService.findByName("ADMIN");
 
         assertNotNull(actual);
         assertEquals("ADMIN", actual.getName());
-        verify(roleRepository).findByName("ADMIN");
+        verify(roleRepository).findByName("ROLE_ADMIN");
     }
 
     @Test
     @DisplayName("Should throw RoleNotFoundException when role name does not exist")
     public void findByName_RoleNotFound_ThrowsRoleNotFoundException() {
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
 
         assertThrows(RoleNotFoundException.class, () -> roleService.findByName("ADMIN"));
 
-        verify(roleRepository).findByName("ADMIN");
+        verify(roleRepository).findByName("ROLE_ADMIN");
     }
 
 
@@ -98,7 +98,7 @@ public class RoleServiceTest {
     @DisplayName("Should throw RoleAlreadyExistsException when role already exists")
     public void addRole_RoleAlreadyExists_ThrowsRoleAlreadyExistsException() {
         AddRoleRequest request = buildRequest("ADMIN", null);
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(buildRole(1L, "ADMIN", Set.of())));
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.of(buildRole(1L, "ADMIN", Set.of())));
 
         assertThrows(RoleAlreadyExistsException.class, () -> roleService.addRole(request));
 
@@ -113,7 +113,7 @@ public class RoleServiceTest {
         Authority writeAuthority = buildAuthority(2L, "write");
         AddRoleRequest request = buildRequest("ADMIN", List.of("read", "write"));
 
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
         when(authorityService.findAuthorityByName("read")).thenReturn(readAuthority);
         when(authorityService.findAuthorityByName("write")).thenReturn(writeAuthority);
         when(roleRepository.save(any(Role.class))).thenReturn(buildRole(1L, "ADMIN", Set.of(readAuthority, writeAuthority)));
@@ -129,7 +129,7 @@ public class RoleServiceTest {
         ArgumentCaptor<Role> captor = ArgumentCaptor.forClass(Role.class);
         verify(roleRepository).save(captor.capture());
         Role capturedRole = captor.getValue();
-        assertEquals("ADMIN", capturedRole.getName());
+        assertEquals("ROLE_ADMIN", capturedRole.getName());
         assertEquals(Set.of(readAuthority, writeAuthority), capturedRole.getAuthorities());
     }
 
@@ -139,18 +139,18 @@ public class RoleServiceTest {
         Authority readAuthority = buildAuthority(1L, "read");
         AddRoleRequest request = buildRequest("  admin  ", List.of("read"));
 
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
         when(authorityService.findAuthorityByName("read")).thenReturn(readAuthority);
         when(roleRepository.save(any(Role.class))).thenReturn(buildRole(1L, "ADMIN", Set.of(readAuthority)));
 
         RoleResponse actual = roleService.addRole(request);
 
         assertEquals("ADMIN", actual.getName());
-        verify(roleRepository).findByName("ADMIN");
+        verify(roleRepository).findByName("ROLE_ADMIN");
 
         ArgumentCaptor<Role> captor = ArgumentCaptor.forClass(Role.class);
         verify(roleRepository).save(captor.capture());
-        assertEquals("ADMIN", captor.getValue().getName());
+        assertEquals("ROLE_ADMIN", captor.getValue().getName());
     }
 
     @Test
@@ -160,7 +160,7 @@ public class RoleServiceTest {
         Authority writeAuthority = buildAuthority(2L, "write");
         AddRoleRequest request = buildRequest("ADMIN", List.of("  READ  ", "  WRITE  "));
 
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
         when(authorityService.findAuthorityByName("read")).thenReturn(readAuthority);
         when(authorityService.findAuthorityByName("write")).thenReturn(writeAuthority);
         when(roleRepository.save(any(Role.class))).thenReturn(buildRole(1L, "ADMIN", Set.of(readAuthority, writeAuthority)));
@@ -182,7 +182,7 @@ public class RoleServiceTest {
     public void addRole_AuthorityNotFound_ThrowsAuthorityNotFoundException() {
         AddRoleRequest request = buildRequest("ADMIN", List.of("nonexistent"));
 
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
         when(authorityService.findAuthorityByName("nonexistent")).thenThrow(new AuthorityNotFoundException("Authority not found: nonexistent"));
 
         assertThrows(AuthorityNotFoundException.class, () -> roleService.addRole(request));
@@ -206,7 +206,7 @@ public class RoleServiceTest {
     @Test
     @DisplayName("Should throw RoleNotFoundException when role does not exist")
     public void deleteRoleByName_RoleNotFound_ThrowsRoleNotFoundException() {
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.empty());
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.empty());
 
         assertThrows(RoleNotFoundException.class, () -> roleService.deleteRoleByName("ADMIN"));
 
@@ -217,10 +217,10 @@ public class RoleServiceTest {
     @DisplayName("Should delete role when role exists")
     public void deleteRoleByName_RoleExists_DeletesRole() {
         Role role = buildRole(1L, "ADMIN", Set.of());
-        when(roleRepository.findByName("ADMIN")).thenReturn(Optional.of(role));
+        when(roleRepository.findByName("ROLE_ADMIN")).thenReturn(Optional.of(role));
 
         roleService.deleteRoleByName("ADMIN");
 
-        verify(roleRepository).deleteByName("ADMIN");
+        verify(roleRepository).deleteByName("ROLE_ADMIN");
     }
 }

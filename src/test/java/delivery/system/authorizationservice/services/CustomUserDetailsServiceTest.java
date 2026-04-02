@@ -39,7 +39,7 @@ public class CustomUserDetailsServiceTest {
         Authority readAuth = Authority.builder().id(1L).name("read").build();
         Role userRole = Role.builder()
                 .id(1L)
-                .name("USER")
+                .name("ROLE_USER")
                 .authorities(new HashSet<>(Set.of(readAuth)))
                 .build();
         return User.builder()

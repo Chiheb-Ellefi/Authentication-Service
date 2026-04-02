@@ -7,7 +7,7 @@ import delivery.system.authorizationservice.models.request.ClientRegistrationReq
 import delivery.system.authorizationservice.models.response.ClientDetailsResponse;
 import delivery.system.authorizationservice.models.response.ClientOperationResponse;
 import delivery.system.authorizationservice.models.response.ClientRegistrationResponse;
-import delivery.system.authorizationservice.repositories.RegisteredClientAdminRepository;
+import delivery.system.authorizationservice.repositories.impl.RegisteredClientAdminRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ class RegisteredClientServiceTest {
     PasswordEncoder passwordEncoder;
 
     @Mock
-    RegisteredClientAdminRepository registeredClientAdminRepository;
+    RegisteredClientAdminRepositoryImpl registeredClientAdminRepositoryImpl;
 
     RegisteredClientService registeredClientService;
 
@@ -69,7 +69,7 @@ class RegisteredClientServiceTest {
         registeredClientService = new RegisteredClientService(
                 registeredClientRepository,
                 passwordEncoder,
-                registeredClientAdminRepository
+                registeredClientAdminRepositoryImpl
         );
 
         setField("accessTokenTtl", accessTokenTtl);
@@ -118,7 +118,7 @@ class RegisteredClientServiceTest {
     @DisplayName("Should throw ClientAlreadyExistsException when the clientName already exists")
     public void registerClient_ClientNameExists_ThrowsClientAlreadyExistsException(){
         ClientRegistrationRequest clientRegistrationRequest = buildValidRequest();
-        when(registeredClientAdminRepository.existsByClientName(clientRegistrationRequest.getClientName())).thenReturn(true);
+        when(registeredClientAdminRepositoryImpl.existsByClientName(clientRegistrationRequest.getClientName())).thenReturn(true);
         ClientAlreadyExistsException exception = assertThrows(
                 ClientAlreadyExistsException.class,
                 () -> registeredClientService.registerClient(clientRegistrationRequest)
@@ -132,7 +132,7 @@ class RegisteredClientServiceTest {
     public void registerClient_DataIntegrityViolationException_ThrowsClientAlreadyExistsException() {
         ClientRegistrationRequest clientRegistrationRequest = buildValidRequest();
 
-        when(registeredClientAdminRepository.existsByClientName(clientRegistrationRequest.getClientName()))
+        when(registeredClientAdminRepositoryImpl.existsByClientName(clientRegistrationRequest.getClientName()))
                 .thenReturn(false);
 
         doThrow(new DataIntegrityViolationException("unique constraint violation"))
@@ -153,7 +153,7 @@ class RegisteredClientServiceTest {
     void registerClient_ValidRequest_PersistClientAndReturnResponse() {
         ClientRegistrationRequest request = buildValidRequest();
 
-        when(registeredClientAdminRepository.existsByClientName(request.getClientName()))
+        when(registeredClientAdminRepositoryImpl.existsByClientName(request.getClientName()))
                 .thenReturn(false);
 
         when(passwordEncoder.encode(anyString())).thenReturn("encoded-secret");
@@ -229,7 +229,7 @@ class RegisteredClientServiceTest {
 
         ClientOperationResponse response = registeredClientService.deleteClient(registeredClient.getClientId());
 
-        verify(registeredClientAdminRepository).deleteByClientId(registeredClient.getClientId());
+        verify(registeredClientAdminRepositoryImpl).deleteByClientId(registeredClient.getClientId());
         assertEquals(response.getClientId(), registeredClient.getClientId());
         assertEquals(response.getMessage(), "Client with id: " + registeredClient.getClientId() + " deleted successfully!");
     }
@@ -259,6 +259,6 @@ class RegisteredClientServiceTest {
         assertThrows(ClientNotFoundException.class,
                 () -> registeredClientService.deleteClient(clientId));
 
-        verify(registeredClientAdminRepository, never()).deleteByClientId(any());
+        verify(registeredClientAdminRepositoryImpl, never()).deleteByClientId(any());
     }
 }
