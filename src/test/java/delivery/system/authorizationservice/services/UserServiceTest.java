@@ -55,7 +55,7 @@ public class UserServiceTest {
                 .build();
     }
 
-    /*---------------- createUser ----------------*/
+    /*---------------- addUser ----------------*/
 
     @Test
     @DisplayName("Should create user when request is valid")

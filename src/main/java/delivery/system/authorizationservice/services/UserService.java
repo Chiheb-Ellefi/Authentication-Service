@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,15 @@ public class UserService {
 
     @Transactional
     public void createUser(AddUserRequest request) {
+        saveUser(request);
+    }
+    @Transactional
+    public void registerUSer(AddUserRequest request) {
+        request.setRoles(List.of("USER"));
+        saveUser(request);
+    }
+
+    private void saveUser(AddUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new UserAlreadyExistsException("Username taken: " + request.getUsername());
         }

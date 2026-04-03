@@ -58,7 +58,7 @@ public class GeneralExceptionHandler {
     @ExceptionHandler(AuthorityAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleAuthorityAlreadyExists(AuthorityAlreadyExistsException e) {
         ErrorDetails error = ErrorDetails.builder()
-                .message("Conflict")
+                .message("Conflict - Authority already exists")
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
@@ -66,7 +66,7 @@ public class GeneralExceptionHandler {
     @ExceptionHandler(RoleAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleRoleAlreadyExists(RoleAlreadyExistsException e) {
         ErrorDetails error = ErrorDetails.builder()
-                .message("Conflict")
+                .message("Conflict -  Role already exists")
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
@@ -74,7 +74,7 @@ public class GeneralExceptionHandler {
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleUserAlreadyExists(UserAlreadyExistsException e) {
         ErrorDetails errorDetails=ErrorDetails.builder()
-                .message("Conflict")
+                .message("Conflict - Username already exists")
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);
@@ -98,7 +98,7 @@ public class GeneralExceptionHandler {
 @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleClientAlreadyExists(ClientAlreadyExistsException e) {
         ErrorDetails errorDetails =ErrorDetails.builder()
-                .message("Client already exists")
+                .message("Conflict - Client already exists")
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(errorDetails, HttpStatus.CONFLICT);

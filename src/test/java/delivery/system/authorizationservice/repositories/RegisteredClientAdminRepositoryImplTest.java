@@ -1,8 +1,10 @@
 package delivery.system.authorizationservice.repositories;
 
 
-import delivery.system.authorizationservice.config.TestConfig;
 
+
+import delivery.system.authorizationservice.config.TestConfig;
+import delivery.system.authorizationservice.config.TestOAuthConfig;
 import delivery.system.authorizationservice.repositories.impl.RegisteredClientAdminRepositoryImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 
 @JdbcTest
-@Import({RegisteredClientAdminRepositoryImpl.class, TestConfig.class})
+@Import({RegisteredClientAdminRepositoryImpl.class, TestOAuthConfig.class, TestConfig.class})
 public class RegisteredClientAdminRepositoryImplTest {
 
     @Autowired

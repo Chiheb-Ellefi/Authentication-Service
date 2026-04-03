@@ -7,11 +7,13 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
 @Getter
 @NoArgsConstructor
+@Setter
 public class AddRoleRequest {
     @JsonProperty("name")
     @NotBlank(message = "Name cannot be blank")
