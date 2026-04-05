@@ -33,7 +33,7 @@ public class UserService {
         saveUser(request);
     }
     @Transactional
-    public void registerUSer(AddUserRequest request) {
+    public void registerUser(AddUserRequest request) {
         request.setRoles(List.of("USER"));
         saveUser(request);
     }

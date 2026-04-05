@@ -18,12 +18,12 @@ public class UserController {
     @PostMapping
     public ResponseEntity<String> addUser(@RequestBody @Valid AddUserRequest request) {
         userService.createUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User created");
+        return ResponseEntity.status(HttpStatus.CREATED).body("User created successfully");
     }
     @PostMapping("/register")
     public ResponseEntity<String> registerUser(@RequestBody @Valid AddUserRequest request) {
-       userService.registerUSer(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("User created");
+       userService.registerUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully");
     }
 
 }
