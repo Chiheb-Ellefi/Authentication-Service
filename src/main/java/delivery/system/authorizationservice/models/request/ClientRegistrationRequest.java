@@ -7,9 +7,7 @@ import delivery.system.authorizationservice.annotations.ValidScopes;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 
 import java.util.Set;
@@ -17,6 +15,8 @@ import java.util.Set;
 @Getter
 @Builder
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class ClientRegistrationRequest {
 
     @NotBlank(message = "Client name is required")
@@ -40,7 +40,7 @@ public class ClientRegistrationRequest {
 
     @NotEmpty(message = "At least one redirect URI is required")
     @ValidRedirectUris
-    @JsonProperty("postLogoutRedirectUri")
+    @JsonProperty("postLogoutRedirectUris")
     private Set<String> postLogoutRedirectUris;
 
 }

@@ -66,7 +66,7 @@ public class GeneralExceptionHandler {
     @ExceptionHandler(RoleAlreadyExistsException.class)
     public ResponseEntity<ErrorDetails> handleRoleAlreadyExists(RoleAlreadyExistsException e) {
         ErrorDetails error = ErrorDetails.builder()
-                .message("Conflict -  Role already exists")
+                .message("Conflict - Role already exists")
                 .details(e.getMessage())
                 .build();
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);

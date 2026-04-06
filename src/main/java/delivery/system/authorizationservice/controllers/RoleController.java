@@ -7,6 +7,7 @@ import delivery.system.authorizationservice.services.RoleService;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,7 +28,7 @@ public class RoleController {
     @PostMapping
     public ResponseEntity<RoleResponse> addRole(@RequestBody @Valid AddRoleRequest request) {
         RoleResponse response = roleService.addRole(request);
-        return ResponseEntity.ok(response);
+  return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     @DeleteMapping("/{name}")
     public ResponseEntity<Void> deleteRole(@PathVariable String name) {

@@ -7,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -52,7 +51,7 @@ public abstract class BaseIntegrationTest {
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(authorityRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
     protected void givenRoleExists(String name,List<String> authorities) throws Exception {
         AddRoleRequest roleRequest = new AddRoleRequest();
@@ -62,7 +61,7 @@ public abstract class BaseIntegrationTest {
                         .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN") ))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(roleRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 
 }

@@ -5,6 +5,7 @@ import delivery.system.authorizationservice.models.response.AuthorityResponse;
 import delivery.system.authorizationservice.services.AuthorityService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +17,7 @@ public class AuthorityController {
     @PostMapping
     public ResponseEntity<AuthorityResponse> addAuthority(@RequestBody @Valid AddAuthorityRequest request) {
        AuthorityResponse response= authorityService.addAuthority(request);
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @DeleteMapping("/{name}")

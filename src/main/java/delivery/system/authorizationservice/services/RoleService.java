@@ -48,7 +48,12 @@ public class RoleService {
     }
 
     public List<RoleResponse> findAll() {
-       return roleRepository.findAll().stream().map(role -> RoleResponse.builder().id(role.getId()).name(role.getName()).build()).collect(Collectors.toList());
+       return roleRepository.findAll().stream().map(role -> RoleResponse.builder()
+               .id(role.getId())
+               .name(role.getName())
+               .authorities(role.getAuthorities().stream().map(Authority::getName).collect(Collectors.toSet()))
+               .build())
+               .collect(Collectors.toList());
     }
 }
 /*

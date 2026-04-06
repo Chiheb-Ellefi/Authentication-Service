@@ -7,6 +7,7 @@ import delivery.system.authorizationservice.services.RegisteredClientService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class ClientController {
     @PostMapping
     public ResponseEntity<ClientRegistrationResponse> registerClient(@RequestBody @Valid ClientRegistrationRequest request) {
         ClientRegistrationResponse clientRegistrationResponse = registeredClientService.registerClient(request);
-        return ResponseEntity.ok(clientRegistrationResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(clientRegistrationResponse);
     }
 
     @GetMapping("/{clientId}")
