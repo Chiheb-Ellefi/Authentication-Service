@@ -6,7 +6,13 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import delivery.system.authorizationservice.models.others.BlacklistedTokenMetadata;
+import delivery.system.authorizationservice.models.others.RevocationReason;
+import delivery.system.authorizationservice.security.filters.TokenRevocationFilter;
+import delivery.system.authorizationservice.services.BlacklistService;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -24,16 +30,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2AuthorizationConsentService;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
+import org.springframework.security.oauth2.server.authorization.authentication.OAuth2TokenRevocationAuthenticationToken;
 import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.settings.AuthorizationServerSettings;
 import org.springframework.security.oauth2.server.authorization.token.*;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 
@@ -42,17 +51,18 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
+    @Value("${token.format}")
+        private String TOKEN_FORMAT;
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -60,10 +70,39 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain oauth2ServerConfig(HttpSecurity http) throws Exception {
+    public SecurityFilterChain oauth2ServerConfig(HttpSecurity http, JwtDecoder decoder, BlacklistService blacklistService) throws Exception {
         OAuth2AuthorizationServerConfigurer configurer =
                 new OAuth2AuthorizationServerConfigurer();
 
+
+        /*-----Add revoked access token to blacklist-----*/
+        configurer.tokenRevocationEndpoint(revocation->revocation.revocationResponseHandler((request, response, authentication) -> {
+            OAuth2TokenRevocationAuthenticationToken token=(OAuth2TokenRevocationAuthenticationToken)authentication;
+            Jwt jwt=decoder.decode(token.getToken());
+            LocalDateTime tokenExpiresAt = jwt.getExpiresAt() != null
+                    ? LocalDateTime.ofInstant(jwt.getExpiresAt(), ZoneOffset.UTC)
+                    : null;
+            Set<String> roles = new HashSet<>(
+                    jwt.getClaimAsStringList("roles") != null
+                            ? jwt.getClaimAsStringList("roles")
+                            : List.of()
+            );
+            String jti=jwt.getClaim("jti");
+            BlacklistedTokenMetadata blacklistedTokenMetadata=BlacklistedTokenMetadata.builder()
+                    .reason(RevocationReason.USER_LOGOUT)
+                    .username(jwt.getClaim("username"))
+                    .roles(roles)
+                    .jti(jti)
+                    .tokenType(TOKEN_FORMAT)
+                    .revokedAt(LocalDateTime.now(ZoneOffset.UTC))
+                    .tokenExpiresAt(tokenExpiresAt)
+                    .revokedByIp(request.getRemoteAddr())
+                    .userAgent(request.getHeader("User-Agent"))
+                    .revokedBy(authentication.getName())
+                    .build();
+            blacklistService.revokeAccessToken(jti, blacklistedTokenMetadata);
+            response.setStatus(HttpServletResponse.SC_OK);
+        }));
         http.securityMatcher(configurer.getEndpointsMatcher())
                 .with(configurer, Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
@@ -98,7 +137,7 @@ public class SecurityConfig {
     // -------------------------------------------------------------------------
     @Bean
     @Order(3)
-    public SecurityFilterChain restApiConfig(HttpSecurity http) throws Exception {
+    public SecurityFilterChain restApiConfig(HttpSecurity http, TokenRevocationFilter tokenRevocationFilter) throws Exception {
         http.securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
@@ -106,6 +145,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                 )
+                .addFilterBefore(tokenRevocationFilter, BearerTokenAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/authorities/**").hasRole("ADMIN")
@@ -156,7 +196,7 @@ public class SecurityConfig {
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-        // Add a unique key ID
+
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
                 .keyID(UUID.randomUUID().toString())
@@ -180,6 +220,7 @@ public class SecurityConfig {
     @Bean
     public OAuth2TokenCustomizer<JwtEncodingContext> tokenCustomizer() {
         return context -> {
+
             if (OAuth2TokenType.ACCESS_TOKEN.equals(context.getTokenType())) {
                 Authentication principal = context.getPrincipal();
                 if (principal == null || principal.getAuthorities() == null) return;
@@ -209,6 +250,13 @@ public class SecurityConfig {
         JwtAuthenticationConverter jwtConverter = new JwtAuthenticationConverter();
         jwtConverter.setJwtGrantedAuthoritiesConverter(converter);
         return jwtConverter;
+    }
+
+    @Bean
+    public FilterRegistrationBean<TokenRevocationFilter> disableAutoRegistration(TokenRevocationFilter filter) {
+        FilterRegistrationBean<TokenRevocationFilter> registrationBean = new FilterRegistrationBean<>(filter);
+        registrationBean.setEnabled(false);
+        return registrationBean;
     }
 
 

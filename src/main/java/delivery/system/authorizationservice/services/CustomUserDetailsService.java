@@ -3,7 +3,7 @@
 
     import delivery.system.authorizationservice.entities.User;
 
-    import delivery.system.authorizationservice.models.CustomUserDetails;
+    import delivery.system.authorizationservice.models.others.CustomUserDetails;
     import delivery.system.authorizationservice.repositories.UserRepository;
     import lombok.RequiredArgsConstructor;
     import org.jspecify.annotations.Nullable;

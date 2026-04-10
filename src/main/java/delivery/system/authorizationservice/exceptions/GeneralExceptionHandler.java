@@ -5,17 +5,21 @@ import delivery.system.authorizationservice.exceptions.authority.AuthorityNotFou
 import delivery.system.authorizationservice.exceptions.client.ClientAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.client.ClientNotFoundException;
 import delivery.system.authorizationservice.exceptions.request.BadRequestException;
+import delivery.system.authorizationservice.exceptions.request.InvalidRevocationReasonException;
+import delivery.system.authorizationservice.exceptions.request.TokenRevocationException;
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
 import delivery.system.authorizationservice.exceptions.user.PasswordDoNotMatchException;
 import delivery.system.authorizationservice.exceptions.user.UserAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.user.UserNotFoundException;
+import delivery.system.authorizationservice.models.others.RevocationReason;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -112,5 +116,33 @@ public class GeneralExceptionHandler {
 
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
 }
+
+    @ExceptionHandler(InvalidRevocationReasonException.class)
+    public ResponseEntity<ErrorDetails> handleInvalidRevocationReasonException(InvalidRevocationReasonException e) {
+        ErrorDetails errorDetails=  ErrorDetails.builder()
+                .message("INVALID_REVOCATION_REASON: "+e.getMessage())
+                .details(Arrays.stream(RevocationReason.values()).map(RevocationReason::getValue).toList().toString())
+                .build();
+
+        return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(TokenRevocationException.class)
+    public  ResponseEntity<ErrorDetails> handleTokenRevocationException(TokenRevocationException e) {
+
+        ErrorDetails errorDetails=ErrorDetails.builder()
+                .message(e.getMessage())
+                .details(e.getCause().getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    @ExceptionHandler(TokenRevokedException.class)
+    public ResponseEntity<ErrorDetails> handleTokenRevokedException(TokenRevokedException e) {
+        ErrorDetails errorDetails=ErrorDetails.builder()
+                .message("Token revoked")
+                .details(e.getMessage())
+                .build();
+        return new ResponseEntity<>(errorDetails, HttpStatus.UNAUTHORIZED);
+    }
+
 
 }

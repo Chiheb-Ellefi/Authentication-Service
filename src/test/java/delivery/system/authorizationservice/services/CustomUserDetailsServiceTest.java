@@ -3,7 +3,7 @@ package delivery.system.authorizationservice.services;
 import delivery.system.authorizationservice.entities.Authority;
 import delivery.system.authorizationservice.entities.Role;
 import delivery.system.authorizationservice.entities.User;
-import delivery.system.authorizationservice.models.CustomUserDetails;
+import delivery.system.authorizationservice.models.others.CustomUserDetails;
 import delivery.system.authorizationservice.repositories.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
