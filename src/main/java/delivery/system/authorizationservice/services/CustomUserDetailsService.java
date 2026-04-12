@@ -1,14 +1,13 @@
     package delivery.system.authorizationservice.services;
 
 
+    import delivery.system.authorizationservice.entities.Authority;
     import delivery.system.authorizationservice.entities.User;
 
     import delivery.system.authorizationservice.models.others.CustomUserDetails;
     import delivery.system.authorizationservice.repositories.UserRepository;
     import lombok.RequiredArgsConstructor;
     import org.jspecify.annotations.Nullable;
-    import org.springframework.security.core.GrantedAuthority;
-    import org.springframework.security.core.authority.SimpleGrantedAuthority;
     import org.springframework.security.core.userdetails.UserDetails;
     import org.springframework.security.core.userdetails.UserDetailsService;
     import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -33,12 +32,12 @@
             User user = userRepository.findByUsernameWithRoles(username)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-            Set<GrantedAuthority> authorities = user.getRoles().stream()
+            Set<String> authorities = user.getRoles().stream()
                     .flatMap(role -> {
-                        Set<GrantedAuthority> auths = role.getAuthorities().stream()
-                                .map(a -> (GrantedAuthority) new SimpleGrantedAuthority(a.getName()))
+                        Set<String> auths = role.getAuthorities().stream()
+                                .map(Authority::getName)
                                 .collect(Collectors.toSet());
-                        auths.add(new SimpleGrantedAuthority(role.getName()));
+                        auths.add(role.getName());
                         return auths.stream();
                     })
                     .collect(Collectors.toSet());

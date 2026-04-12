@@ -7,6 +7,7 @@ import delivery.system.authorizationservice.exceptions.client.ClientNotFoundExce
 import delivery.system.authorizationservice.exceptions.request.BadRequestException;
 import delivery.system.authorizationservice.exceptions.request.InvalidRevocationReasonException;
 import delivery.system.authorizationservice.exceptions.request.TokenRevocationException;
+import delivery.system.authorizationservice.exceptions.request.TokenRevokedException;
 import delivery.system.authorizationservice.exceptions.role.RoleAlreadyExistsException;
 import delivery.system.authorizationservice.exceptions.role.RoleNotFoundException;
 import delivery.system.authorizationservice.exceptions.user.PasswordDoNotMatchException;

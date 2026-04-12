@@ -1,34 +1,55 @@
 package delivery.system.authorizationservice.models.others;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
+import com.fasterxml.jackson.annotation.*;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.extern.jackson.Jacksonized;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-
 import java.util.Collection;
-
 import java.util.Set;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
-@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
+@Builder
+@Jacksonized
 public class CustomUserDetails implements UserDetails {
 
+    @JsonProperty("id")
     private final Long id;
+
+    @JsonProperty("username")
     private final String username;
+
+    @JsonProperty("password")
     private final String password;
+
+    @JsonProperty("enabled")
     private final boolean enabled;
+
+    @JsonProperty("accountNonExpired")
     private final boolean accountNonExpired;
+
+    @JsonProperty("accountNonLocked")
     private final boolean accountNonLocked;
+
+    @JsonProperty("credentialsNonExpired")
     private final boolean credentialsNonExpired;
-    private final Set<GrantedAuthority> authorities;
+
+    @JsonProperty("authorities")
+    private final Set<String> authorities;
+
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities != null ? authorities : Set.of();
+        return authorities == null
+                ? Set.of()
+                : authorities.stream()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
     }
 
     @Override

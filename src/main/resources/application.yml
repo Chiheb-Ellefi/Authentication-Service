@@ -19,7 +19,7 @@ server:
   port: 9000
 
 token:
-  format: self-contained
+  format: reference
   access-token-ttl: 300
   refresh-token-ttl: 2592000
   authorization-code-ttl: 300
