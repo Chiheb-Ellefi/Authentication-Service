@@ -1,6 +1,6 @@
 spring:
   application:
-    name: Authorization Service
+    name: AuthorizationService
   datasource:
     url: jdbc:postgresql://localhost:5432/postgres
     password: password
@@ -17,13 +17,20 @@ spring:
       host: localhost
 server:
   port: 9000
+  ssl:
+    enabled: true
+    key-store: file:/home/chihebellefi/certs/keystore.p12
+    key-store-type: PKCS12
+    key-store-password: ${SSL_KEYSTORE_PASSWORD:password}
+    key-password: ${SSL_KEY_PASSWORD:password}
+
 
 token:
-  format: reference
+  format: self-contained
   access-token-ttl: 300
   refresh-token-ttl: 2592000
   authorization-code-ttl: 300
-  reuse-refresh-tokens: false
+  reuse-refresh-tokens: true
   id-token-signature-algorithm: RS256
 
 
@@ -35,3 +42,68 @@ auth:
 client:
   require-proof-key: false
   require-authorization-consent: false
+
+
+# ============================================
+# EUREKA CLIENT CONFIGURATION
+# ============================================
+
+eureka:
+  client:
+    service-url:
+      defaultZone: https://user:password@localhost:8761/eureka/
+
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    registry-fetch-interval-seconds: 10
+    disable-delta: false
+    healthcheck:
+      enabled: true
+    refresh:
+      enable: true
+    region: us-east-1
+    availability-zones:
+      us-east-1: zone1, zone2
+    prefer-same-zone-eureka: true
+    webclient:
+      enabled: false
+    timeout:
+      connect-timeout: 5000
+      connect-request-timeout: 8000
+      socket-timeout: 10000
+    tls:
+      enabled: true
+      key-store: file:/home/chihebellefi/certs/keystore.p12
+      key-store-type: PKCS12
+      key-store-password: ${SSL_KEYSTORE_PASSWORD:password}
+      key-password: ${SSL_KEY_PASSWORD:password}
+      trust-store: file:/home/chihebellefi/certs/keystore.p12
+      trust-store-password: ${SSL_TRUSTSTORE_PASSWORD:password}
+      trust-store-type: PKCS12
+    eureka-server-connect-timeout-seconds: 5
+    eureka-server-read-timeout-seconds: 8
+    eureka-server-total-connections: 200
+    eureka-server-total-connections-per-host: 50
+    eureka-connection-idle-timeout-seconds: 30
+    filter-only-up-instances: true
+    log-delta-diff: true
+    g-zip-content: true
+  instance:
+    hostname: ${HOSTNAME:localhost}
+    ip-address: 127.0.0.1
+    prefer-ip-address: false
+    non-secure-port: ${server.port}
+    non-secure-port-enabled: false
+    secure-port: ${server.port}
+    secure-port-enabled: true
+    status-page-url: https://${eureka.instance.hostname}:${eureka.instance.secure-port}/actuator/info
+    health-check-url: https://${eureka.instance.hostname}:${eureka.instance.secure-port}/actuator/health
+    home-page-url: https://${eureka.instance.hostname}:${eureka.instance.secure-port}/
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 60
+    metadata-map:
+      zone: zone1
+      version: 1.0.0
+      profile: dev
+    initial-status: UP

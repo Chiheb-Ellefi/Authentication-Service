@@ -88,7 +88,7 @@ public class SecurityConfig {
                                                   JwtDecoder decoder,
                                                   BlacklistService blacklistService,
                                                   RegisteredClientRepository registeredClientRepository , OAuth2AuthorizationService authorizationService
-                                                  ) throws Exception {
+                                                  )  {
 
         OAuth2TokenIntrospectionAuthenticationProvider defaultProvider =
                 new OAuth2TokenIntrospectionAuthenticationProvider(
@@ -188,7 +188,7 @@ public class SecurityConfig {
     // -------------------------------------------------------------------------
     @Bean
     @Order(2)
-    public SecurityFilterChain formLoginConfig(HttpSecurity http) throws Exception {
+    public SecurityFilterChain formLoginConfig(HttpSecurity http)  {
         http.securityMatcher("/login/**", "/error/**")
                 .formLogin(form -> form
                 .successHandler(authenticationSuccessHandler())
@@ -206,7 +206,7 @@ public class SecurityConfig {
     @Order(3)
     public SecurityFilterChain restApiConfig(HttpSecurity http,
                                              TokenRevocationFilter tokenRevocationFilter,
-                                             OAuth2AuthorizationService authorizationService) throws Exception {
+                                            OpaqueTokenAuthenticationConverter converter,OpaqueTokenIntrospector introspector)  {
         http.securityMatcher("/api/**")
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session
@@ -214,8 +214,8 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> {
             if ("reference".equalsIgnoreCase(TOKEN_FORMAT)) {
                 oauth2.opaqueToken(opaque -> opaque
-                        .introspector(localOpaqueTokenIntrospector(authorizationService))
-                        .authenticationConverter(opaqueTokenAuthenticationConverter())
+                        .introspector(introspector)
+                        .authenticationConverter(converter)
                 );
             } else {
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()));
@@ -225,10 +225,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/roles/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/authorities/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/clients/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/clients/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/register").permitAll()
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, e) -> {
                             response.setContentType("application/json");
@@ -256,19 +256,9 @@ public class SecurityConfig {
     public OpaqueTokenAuthenticationConverter opaqueTokenAuthenticationConverter() {
         return (introspectedToken, principal) -> {
 
-            // Correct way — getAttributes() returns the introspection claims map
             Map<String, Object> attributes = principal.getAttributes();
 
-            Collection<GrantedAuthority> authorities = new ArrayList<>();
-
-            Object authoritiesClaim = attributes.get("authorities");
-            if (authoritiesClaim instanceof Collection<?> authList) {
-                authList.stream()
-                        .map(Object::toString)
-                        .map(SimpleGrantedAuthority::new)
-                        .forEach(authorities::add);
-            }
-
+            Collection<GrantedAuthority> authorities = new ArrayList<>(principal.getAuthorities());
             return new BearerTokenAuthentication(
                     new OAuth2IntrospectionAuthenticatedPrincipal(
                             principal.getName(),
@@ -306,7 +296,6 @@ public class SecurityConfig {
                     ? accessToken.getClaims()
                     : new HashMap<>();
 
-            // Build the principal from stored claims
             Collection<GrantedAuthority> authorities = new ArrayList<>();
             Object authoritiesClaim = claims.get("authorities");
             if (authoritiesClaim instanceof Collection<?> authList) {
@@ -426,7 +415,6 @@ public class SecurityConfig {
         registrationBean.setEnabled(false);
         return registrationBean;
     }
-
 
     @Bean
     public OAuth2AuthorizationService authorizationService(
