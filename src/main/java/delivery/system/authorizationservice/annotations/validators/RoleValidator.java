@@ -3,9 +3,7 @@ package delivery.system.authorizationservice.annotations.validators;
 import delivery.system.authorizationservice.annotations.ValidRole;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.beans.factory.annotation.Value;
 
-import java.util.Set;
 
 public class RoleValidator implements ConstraintValidator<ValidRole, String> {
 
