@@ -12,16 +12,14 @@ WORKDIR /app
 COPY .mvn .mvn
 COPY  mvnw .
 COPY pom.xml .
-
 RUN chmod +x mvnw && ./mvnw dependency:go-offline
-
 COPY src src
 RUN ./mvnw clean package -DskipTests
 
 #------- Stage 2 : Runtime --------
 FROM ${BASE_DISTRO}:${JRE_VERSION} AS runtime
 ENV SERVER_PORT=9000
-
+WORKDIR /app
 RUN groupadd -r auth && useradd -r -g auth -u 1001 auth
 USER auth
 COPY --from=build --chown=auth:auth app/target/*.jar app.jar
