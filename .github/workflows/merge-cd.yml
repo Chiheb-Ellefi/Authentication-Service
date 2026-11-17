@@ -1,0 +1,29 @@
+name: Continuous deployment
+run-name: "Release ${{ github.event.release.tag_name }} by @${{ github.actor }}"
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "pom.xml"
+      - "Dockerfile"
+      - ".github/workflows/**"
+      - "k8s/**"
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+
+jobs:
+  cd:
+    uses: Chiheb-Ellefi/ci-templates/.github/workflows/docker-cd.yml@v2.0.5
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+      packages: write
+    with:
+      image-name: "ghcr.io/chiheb-ellefi/authentication-service"

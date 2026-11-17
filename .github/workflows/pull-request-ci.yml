@@ -1,0 +1,26 @@
+name: Continuous integration
+run-name: "${{ github.event_name }} by @${{ github.actor }} on ${{ github.ref_name }}"
+
+on:
+
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  ci:
+    uses: Chiheb-Ellefi/ci-templates/.github/workflows/java-ci.yml@v2.0.5
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    with:
+      java-version: "25"
