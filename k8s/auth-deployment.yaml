@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-deployment
+  namespace: auth
+  labels:
+    app: authorization-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: authorization-server
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  minReadySeconds: 5
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      name: auth-pod
+      namespace: auth
+      labels:
+        app: authorization-server
+    spec:
+      containers:
+        - name: authorization-server
+          image: authorization-server:latest
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: auth-configmap
+            - secretRef:
+                name: auth-secret
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "1Gi"
+              ephemeral-storage: "2Gi"
+          startupProbe:
+            httpGet:
+              port: http
+              scheme: HTTP
+              path: "/actuator/health/liveness"
+            periodSeconds: 5
+            failureThreshold: 30
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              port: http
+              scheme: HTTP
+              path: "/actuator/health/liveness"
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              port: http
+              scheme: HTTP
+              path: "/actuator/health/readiness"
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: [ "sh", "-c", "sleep 5" ]
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+spec:
+  selector:
+    app: authorization-server
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: http
+  type: ClusterIP
