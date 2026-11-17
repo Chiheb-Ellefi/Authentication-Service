@@ -26,6 +26,7 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "authority_id")
     )
+    @Builder.Default
     private Set<Authority> authorities=new HashSet<>();
 
 }
